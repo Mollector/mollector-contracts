@@ -17,12 +17,15 @@ contract("CyBlocCore", ([owner, bob, tom]) => {
 
       assert.equal(balance.toNumber(), 100)
 
+      var pass = true
       try {
         await token.mint(bob, 100, { from: bob })
-        assert.equal(1, 0)
+        pass = false
       }
       catch (ex) {
+        pass = true
       }
+      assert.equal(pass, true)
 
       await token.transfer(tom, 50, { from: bob })
 
@@ -33,15 +36,27 @@ contract("CyBlocCore", ([owner, bob, tom]) => {
 
       try {
         await token.transfer(tom, 10, { from: bob })
-        assert.equal(1, 0)
+        pass = false
       }
-      catch (ex) {}
+      catch (ex) {
+        pass = true
+      }
+      assert.equal(pass, true)
 
       await token.unPause()
 
       await token.transfer(tom, 10, { from: bob })
       balance = await token.balanceOf(tom)
       assert.equal(balance.toNumber(), 60)
+
+      try {
+        await token.mint(tom, await token.cap(), { from: owner })
+        pass = false
+      }
+      catch (ex) {
+        pass = true
+      }
+      assert.equal(pass, true)
     });
   });
 });
