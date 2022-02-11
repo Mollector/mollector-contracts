@@ -1,5 +1,5 @@
 
-const MOLToken = artifacts.require("./MOLToken.sol");
+const MoleculeToken = artifacts.require("./MoleculeToken.sol");
 const BigNumber = require('bignumber.js')
 
 BigNumber.config({
@@ -7,5 +7,5 @@ BigNumber.config({
 })
 
 module.exports = async (deployer) => {
-  await deployer.deploy(MOLToken, {gas: 5000000});
+  await deployer.deploy(MoleculeToken, {gas: 5000000});
 };

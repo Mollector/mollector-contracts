@@ -1,9 +1,9 @@
-const MOLToken = artifacts.require('../contracts/MOLToken.sol');
+const MoleculeToken = artifacts.require('../contracts/MoleculeToken.sol');
 
 contract("CyBlocCore", ([owner, bob, tom]) => {
   
   before(async () => {
-    token = await MOLToken.new({ from: owner })
+    token = await MoleculeToken.new({ from: owner })
   });
 
   describe('#constructor()', () => {
