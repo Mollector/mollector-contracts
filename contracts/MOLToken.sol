@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract MOLToken is Ownable, ERC20, ERC20Burnable, ERC20Pausable {
-    constructor() ERC20("Mollecule Token", "MOL") {
+    constructor() ERC20("Molecule Token", "MOL") {
 
     }
 
