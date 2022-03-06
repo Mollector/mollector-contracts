@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract MultiBeneficiaryTokenVesting is Ownable {
+contract TokenVesting is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -26,6 +26,8 @@ contract MultiBeneficiaryTokenVesting is Ownable {
     uint256 public totalReleased = 0;
 
     address[] public beneficiaries;
+
+    uint public withdrawAt = 0;
 
     constructor(
         IERC20 _token,
@@ -56,6 +58,28 @@ contract MultiBeneficiaryTokenVesting is Ownable {
         return total;
     }
 
+    // Lock 7 days 
+    function requestWithdraw() public onlyOwner {
+        withdrawAt = block.timestamp + 7 days;
+    }
+    
+    // need request withdraw and wait 7 days
+    // only use when transfer wrong token or emergency
+    function withdraw(address _token, address payable _to) external onlyOwner {
+        require(withdrawAt > 0 && withdrawAt < block.timestamp, "Cannot withdraw");
+
+        if (_token == address(0x0)) {
+            // payable(_to).transfer(address(this).balance);
+            (bool success, ) = payable(_to).call{ value: address(this).balance }("");
+            require(success, "failed to send ether to owner");
+        }
+        else {
+            IERC20(_token).safeTransfer(_to, IERC20(_token).balanceOf(address(this)));
+        }
+
+        withdrawAt = 0;
+    }
+
     function addBeneficiary(address _beneficiary, uint256 _amount)
         public
         onlyOwner
@@ -73,6 +97,15 @@ contract MultiBeneficiaryTokenVesting is Ownable {
         shares[_beneficiary] = shares[_beneficiary].add(_amount);
     }
 
+    function addMultiBeneficiaries(address[] memory _beneficiaries, uint256[] memory _amounts)
+        public
+        onlyOwner
+    {
+        for (uint i = 0; i < _beneficiaries.length; i++) {
+            addBeneficiary(_beneficiaries[i], _amounts[i]);
+        }
+    }
+
     function calculateReleaseAmount(address _beneficiary) public view returns (uint256) {
         if (block.number < cliff) {
             return 0;
@@ -88,8 +121,11 @@ contract MultiBeneficiaryTokenVesting is Ownable {
     }
 
     function _release(address _beneficiary) private returns (uint256) {
-        require(released[_beneficiary] >= shares[_beneficiary], "Cannot release more");
+        require(released[_beneficiary] < shares[_beneficiary], "Cannot release more");
+        
         uint _releaseAmount = calculateReleaseAmount(_beneficiary);
+        require(0 < _releaseAmount, "Have not start or finished");
+
         uint _newReleasedAmount = released[_beneficiary].add(_releaseAmount);
         require(_newReleasedAmount <= shares[_beneficiary], "Something wrong");
 
@@ -103,7 +139,7 @@ contract MultiBeneficiaryTokenVesting is Ownable {
     }
 
     function release() public {
-        require(shares[msg.sender] > 0, "You cannot release tokens!");
+        require(shares[msg.sender] > 0, "You dont have share");
         _release(msg.sender);
     }
 
