@@ -13,6 +13,7 @@ contract TokenVesting is Ownable {
     using SafeERC20 for IERC20;
 
     event Released(address beneficiary, uint256 amount);
+    event Unlocked(address beneficiary, uint256 amount);
 
     IERC20 public token;
 
@@ -21,9 +22,11 @@ contract TokenVesting is Ownable {
     uint256 public duration;
 
     mapping(address => uint256) public shares;
+    mapping(address => uint256) public tgeUnlock;
     mapping(address => uint256) public released;
 
     uint256 public totalReleased = 0;
+    uint256 public totalUnlocked = 0;
 
     address[] public beneficiaries;
 
@@ -31,7 +34,7 @@ contract TokenVesting is Ownable {
 
     constructor(
         IERC20 _token,
-        uint256 _start,
+        uint256 _tge,
         uint256 _cliff,
         uint256 _duration
     ) {
@@ -39,17 +42,19 @@ contract TokenVesting is Ownable {
             _cliff <= _duration,
             "Cliff has to be lower or equal to duration"
         );
+
         token = _token;
+        start = _tge;
+
+        cliff = _tge.add(_cliff);
         duration = _duration;
-        cliff = _start.add(_cliff);
-        start = _start;
     }
 
     function totalBeneficiaries() public view returns (uint) {
         return beneficiaries.length;
     }
 
-    function totalShare() public view returns (uint) {
+    function totalVestingAmount() public view returns (uint) {
         uint total = 0;
         for (uint i = 0; i < beneficiaries.length; i++) {
             total = total.add(shares[beneficiaries[i]]);
@@ -58,9 +63,18 @@ contract TokenVesting is Ownable {
         return total;
     }
 
+    function totalLockAmount() public view returns (uint) {
+        uint total = 0;
+        for (uint i = 0; i < beneficiaries.length; i++) {
+            total = total.add(tgeUnlock[beneficiaries[i]]);
+        }
+
+        return total;
+    }
+
     // Lock 7 days 
     function requestWithdraw() public onlyOwner {
-        withdrawAt = block.timestamp + 7 days;
+        withdrawAt = block.timestamp + 20; // TODO: need check time
     }
     
     // need request withdraw and wait 7 days
@@ -80,7 +94,7 @@ contract TokenVesting is Ownable {
         withdrawAt = 0;
     }
 
-    function addBeneficiary(address _beneficiary, uint256 _amount)
+    function addBeneficiary(address _beneficiary, uint256 _tgeUnlockAmount, uint256 _vestingAmount)
         public
         onlyOwner
     {
@@ -88,21 +102,22 @@ contract TokenVesting is Ownable {
             _beneficiary != address(0),
             "The beneficiary's address cannot be 0"
         );
-        require(_amount > 0, "Shares amount has to be greater than 0");
+        require(_vestingAmount > 0, "Shares amount has to be greater than 0");
 
         if (shares[_beneficiary] == 0) {
             beneficiaries.push(_beneficiary);
         }
 
-        shares[_beneficiary] = shares[_beneficiary].add(_amount);
+        shares[_beneficiary] = shares[_beneficiary].add(_vestingAmount);
+        tgeUnlock[_beneficiary] = tgeUnlock[_beneficiary].add(_tgeUnlockAmount);
     }
 
-    function addMultiBeneficiaries(address[] memory _beneficiaries, uint256[] memory _amounts)
+    function addMultiBeneficiaries(address[] memory _beneficiaries, uint256[] memory _tgeUnlockAmounts, uint256[] memory _vestingAmounts)
         public
         onlyOwner
     {
         for (uint i = 0; i < _beneficiaries.length; i++) {
-            addBeneficiary(_beneficiaries[i], _amounts[i]);
+            addBeneficiary(_beneficiaries[i], _tgeUnlockAmounts[i], _vestingAmounts[i]);
         }
     }
 
@@ -120,7 +135,7 @@ contract TokenVesting is Ownable {
         }
     }
 
-    function _release(address _beneficiary) private returns (uint256) {
+    function _release(address _beneficiary) private {
         require(released[_beneficiary] < shares[_beneficiary], "Cannot release more");
         
         uint _releaseAmount = calculateReleaseAmount(_beneficiary);
@@ -134,8 +149,6 @@ contract TokenVesting is Ownable {
         
         token.safeTransfer(_beneficiary, _releaseAmount);
         emit Released(_beneficiary, _releaseAmount);
-
-        return _releaseAmount;
     }
 
     function release() public {
@@ -146,5 +159,25 @@ contract TokenVesting is Ownable {
     function releaseFor(address _beneficiary) public onlyOwner {
         require(shares[_beneficiary] > 0, "You cannot release tokens!");
         _release(_beneficiary);
+    }
+
+    function _unlock(address _beneficiary) private {
+        require(block.number > start, "Cannot unlock right now, please wait!");
+        require(tgeUnlock[_beneficiary] > 0, "You cannot unlock");
+        uint _amount = tgeUnlock[_beneficiary];
+
+        tgeUnlock[_beneficiary] = 0;
+        totalUnlocked = totalUnlocked.add(_amount);
+
+        token.safeTransfer(_beneficiary, _amount);
+        emit Unlocked(_beneficiary, _amount);
+    }
+
+    function unlock() public {
+        _unlock(msg.sender);
+    }
+
+    function unlockFor(address _beneficiary) public onlyOwner {
+        _unlock(_beneficiary);
     }
 }

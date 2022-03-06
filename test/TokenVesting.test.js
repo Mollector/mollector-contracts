@@ -4,28 +4,22 @@ const MoleculeToken = artifacts.require('../contracts/MoleculeToken.sol');
 const TokenVesting = artifacts.require('../contracts/TokenVesting.sol');
 var $ = {}
 contract("TokenVesting", ([owner, bob, tom, alice, noShare]) => {
-  
-  before(async () => {
-    $.latestBlock = (await time.latestBlock()).toNumber()
-    token = await MoleculeToken.new({ from: owner })
-    vesting = await TokenVesting.new(token.address, $.latestBlock, 10, 100);
-  });
-
   describe('#setup()', () => {
-    it('correct balance', async () => {
-      await token.mint(owner, 1000000)
-      assert.equal(await token.balanceOf(owner), 1000000)
+    it('correct vesting without lock amount', async () => {
+      $.latestBlock = (await time.latestBlock()).toNumber()
+      token = await MoleculeToken.new({ from: owner })
+      vesting = await TokenVesting.new(token.address, $.latestBlock, 10, 100);
 
-      await vesting.addBeneficiary(bob, 500000)
+      await vesting.addBeneficiary(bob, 0, 500000)
       assert.equal(await vesting.shares(bob), 500000)
-      await vesting.addBeneficiary(bob, 100000)
+      await vesting.addBeneficiary(bob, 0, 100000)
       assert.equal(await vesting.shares(bob), 600000)
 
       assert.equal(await vesting.beneficiaries(0), bob)
 
-      await vesting.addBeneficiary(tom, 200000)
+      await vesting.addBeneficiary(tom, 0, 200000)
 
-      assert.equal(await vesting.totalShare(), 800000)
+      assert.equal(await vesting.totalVestingAmount(), 800000)
       assert.equal(await vesting.beneficiaries(1), tom)
       assert.equal(await vesting.shares(tom), 200000)
       assert.equal(await vesting.totalBeneficiaries(), 2)
@@ -35,12 +29,12 @@ contract("TokenVesting", ([owner, bob, tom, alice, noShare]) => {
       assert.equal(await vesting.cliff(), $.latestBlock + 10)
       assert.equal(await vesting.duration(), 100)
 
-      await vesting.addMultiBeneficiaries([tom, alice], [200000, 100000])
-      assert.equal(await vesting.totalShare(), 1100000)
+      await vesting.addMultiBeneficiaries([tom, alice], [0, 0], [200000, 100000])
+      assert.equal(await vesting.totalVestingAmount(), 1100000)
       
       await token.mint(vesting.address, 1100000)
 
-      assert.equal((await token.balanceOf(vesting.address)).toString(), (await vesting.totalShare()).toString())
+      assert.equal((await token.balanceOf(vesting.address)).toString(), (await vesting.totalVestingAmount()).toString())
 
       assert.equal(await vesting.calculateReleaseAmount(bob), 0)
       assert.equal(await vesting.calculateReleaseAmount(tom), 0)
@@ -197,7 +191,7 @@ contract("TokenVesting", ([owner, bob, tom, alice, noShare]) => {
       )
 
       await truffleAssert.fails(
-        vesting.addBeneficiary(noShare, 100000, { from: noShare }),
+        vesting.addBeneficiary(noShare, 0, 100000, { from: noShare }),
         truffleAssert.ErrorType.REVERT,
         "Ownable: caller is not the owner"
       )
@@ -227,6 +221,111 @@ contract("TokenVesting", ([owner, bob, tom, alice, noShare]) => {
       await vesting.withdraw(token.address, noShare)
       assert.equal(await token.balanceOf(noShare), 1234567)
       
+    });
+
+    it('correct vesting vesting and lock', async () => {
+      $.latestBlock = (await time.latestBlock()).toNumber()
+
+      token = await MoleculeToken.new({ from: owner })
+      vesting = await TokenVesting.new(token.address, $.latestBlock + 10, 10, 100);
+
+      await token.mint(owner, 1000000)
+      assert.equal(await token.balanceOf(owner), 1000000)
+      await token.transfer(vesting.address, 1000)
+
+      await vesting.addBeneficiary(bob, 100, 100)
+      assert.equal(await vesting.tgeUnlock(bob), 100)
+      await vesting.addBeneficiary(bob, 100, 100)
+      assert.equal(await vesting.tgeUnlock(bob), 200)
+
+
+      await vesting.addMultiBeneficiaries([bob, tom, alice], [100, 100, 100], [100, 100, 100]);
+      assert.equal(await vesting.tgeUnlock(bob), 300)
+      assert.equal(await vesting.tgeUnlock(tom), 100)
+      assert.equal(await vesting.tgeUnlock(alice), 100)
+
+      assert.equal(await vesting.shares(bob), 300)
+      assert.equal(await vesting.shares(tom), 100)
+      assert.equal(await vesting.shares(alice), 100)
+
+      assert.equal(await vesting.totalUnlocked(), 0)
+      assert.equal(await vesting.totalReleased(), 0)
+      assert.equal(await vesting.totalLockAmount(), 500)
+      assert.equal(await vesting.totalVestingAmount(), 500)
+
+      truffleAssert.fails(
+        vesting.unlock({ from: bob }),
+        truffleAssert.ErrorType.REVERT,
+        "Cannot unlock right now, please wait!"
+      )
+
+      await time.advanceBlockTo($.latestBlock + 20)
+      await vesting.unlock({ from: bob })
+      assert.equal(await vesting.tgeUnlock(bob), 0)
+      assert.equal(await vesting.tgeUnlock(tom), 100)
+      assert.equal(await vesting.tgeUnlock(alice), 100)
+
+      assert.equal(await vesting.totalUnlocked(), 300)
+      assert.equal(await vesting.totalLockAmount(), 200)
+
+      await vesting.unlock({ from: tom })
+
+      assert.equal(await vesting.tgeUnlock(bob), 0)
+      assert.equal(await vesting.tgeUnlock(tom), 0)
+
+      assert.equal(await vesting.totalUnlocked(), 400)
+      assert.equal(await vesting.totalLockAmount(), 100)
+
+      truffleAssert.fails(
+        vesting.unlock({ from: bob }),
+        truffleAssert.ErrorType.REVERT,
+        "You cannot unlock"
+      )
+
+      truffleAssert.fails(
+        vesting.unlock({ from: noShare }),
+        truffleAssert.ErrorType.REVERT,
+        "You cannot unlock"
+      )
+
+      for (var i = 0; i < 100; i++) {
+        if ((await vesting.calculateReleaseAmount(bob)).toNumber() > 0) {
+          await vesting.release({from: bob})
+        }
+        if (i % 5 == 0) {
+          if ((await vesting.calculateReleaseAmount(tom)).toNumber() > 0) {
+            await vesting.release({from: tom})
+          }
+        }
+      }
+
+      await time.advanceBlockTo($.latestBlock + 200)
+
+      if ((await vesting.calculateReleaseAmount(bob)).toNumber() > 0) {
+        await vesting.release({from: bob})
+      }
+
+      if ((await vesting.calculateReleaseAmount(tom)).toNumber() > 0) {
+        await vesting.release({from: tom})
+      }
+      
+      await vesting.release({from: alice})
+      await vesting.unlockFor(alice)
+
+      assert.equal(await token.balanceOf(bob), 600)
+      assert.equal(await token.balanceOf(tom), 200)
+      assert.equal(await token.balanceOf(alice), 200)
+
+      assert.equal(await vesting.tgeUnlock(bob), 0)
+      assert.equal(await vesting.tgeUnlock(tom), 0)
+      assert.equal(await vesting.tgeUnlock(alice), 0)
+
+      assert.equal(await vesting.released(bob), 300)
+      assert.equal(await vesting.released(tom), 100)
+      assert.equal(await vesting.released(alice), 100)
+
+      assert.equal(await vesting.totalUnlocked(), 500)
+      assert.equal(await vesting.totalReleased(), 500)
     });
   });
 });
