@@ -218,9 +218,9 @@ contract("TokenVesting", ([owner, bob, tom, alice, noShare]) => {
         "Ownable: caller is not the owner"
       )
 
+      // if fail this line, please change the lock time in contract to 20s
       await vesting.withdraw(token.address, noShare)
       assert.equal(await token.balanceOf(noShare), 1234567)
-      
     });
 
     it('correct vesting vesting and lock', async () => {

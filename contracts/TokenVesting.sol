@@ -76,7 +76,7 @@ contract TokenVesting is Ownable {
 
     // Lock 7 days 
     function requestWithdraw() public onlyOwner {
-        withdrawAt = block.timestamp + 20; // TODO: need check time
+        withdrawAt = block.timestamp + 7 days; // TODO: need check time
     }
     
     // need request withdraw and wait 7 days
