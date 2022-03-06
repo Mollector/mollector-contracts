@@ -8,7 +8,7 @@ contract("TokenVesting", ([owner, bob, tom, alice, noShare]) => {
     it('correct vesting without lock amount', async () => {
       $.latestBlock = (await time.latestBlock()).toNumber()
       token = await MoleculeToken.new({ from: owner })
-      vesting = await TokenVesting.new(token.address, $.latestBlock, 10, 100);
+      vesting = await TokenVesting.new(token.address, 0, $.latestBlock, 10, 100);
 
       await vesting.addBeneficiary(bob, 0, 500000)
       assert.equal(await vesting.shares(bob), 500000)
@@ -227,7 +227,7 @@ contract("TokenVesting", ([owner, bob, tom, alice, noShare]) => {
       $.latestBlock = (await time.latestBlock()).toNumber()
 
       token = await MoleculeToken.new({ from: owner })
-      vesting = await TokenVesting.new(token.address, $.latestBlock + 10, 10, 100);
+      vesting = await TokenVesting.new(token.address, Math.round(new Date().getTime() / 1000) + 30, $.latestBlock, 10, 100);
 
       await token.mint(owner, 1000000)
       assert.equal(await token.balanceOf(owner), 1000000)
@@ -259,7 +259,7 @@ contract("TokenVesting", ([owner, bob, tom, alice, noShare]) => {
         "Cannot unlock right now, please wait!"
       )
 
-      await time.advanceBlockTo($.latestBlock + 20)
+      await new Promise((resolve) => setTimeout(resolve, 30000))
       await vesting.unlock({ from: bob })
       assert.equal(await vesting.tgeUnlock(bob), 0)
       assert.equal(await vesting.tgeUnlock(tom), 100)

@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract TokenVesting is Ownable {
     using SafeMath for uint256;
@@ -20,6 +19,7 @@ contract TokenVesting is Ownable {
     uint256 public cliff;
     uint256 public start;
     uint256 public duration;
+    uint256 public TGE;
 
     mapping(address => uint256) public shares;
     mapping(address => uint256) public tgeUnlock;
@@ -35,19 +35,21 @@ contract TokenVesting is Ownable {
     constructor(
         IERC20 _token,
         uint256 _tge,
-        uint256 _cliff,
-        uint256 _duration
+        uint256 _startBlock,
+        uint256 _cliffNumberBlock,
+        uint256 _durationNumberBlock
     ) {
         require(
-            _cliff <= _duration,
+            _cliffNumberBlock <= _durationNumberBlock,
             "Cliff has to be lower or equal to duration"
         );
 
         token = _token;
-        start = _tge;
+        TGE = _tge;
+        start = _startBlock;
 
-        cliff = _tge.add(_cliff);
-        duration = _duration;
+        cliff = _startBlock.add(_cliffNumberBlock);
+        duration = _durationNumberBlock;
     }
 
     function totalBeneficiaries() public view returns (uint) {
@@ -162,7 +164,7 @@ contract TokenVesting is Ownable {
     }
 
     function _unlock(address _beneficiary) private {
-        require(block.number > start, "Cannot unlock right now, please wait!");
+        require(block.timestamp > TGE, "Cannot unlock right now, please wait!");
         require(tgeUnlock[_beneficiary] > 0, "You cannot unlock");
         uint _amount = tgeUnlock[_beneficiary];
 
