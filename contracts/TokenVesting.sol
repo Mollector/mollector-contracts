@@ -138,6 +138,7 @@ contract TokenVesting is Ownable {
     }
 
     function _release(address _beneficiary) private {
+        require(shares[_beneficiary] > 0, "Dont have share");
         require(released[_beneficiary] < shares[_beneficiary], "Cannot release more");
         
         uint _releaseAmount = calculateReleaseAmount(_beneficiary);
@@ -154,12 +155,10 @@ contract TokenVesting is Ownable {
     }
 
     function release() public {
-        require(shares[msg.sender] > 0, "You dont have share");
         _release(msg.sender);
     }
 
     function releaseFor(address _beneficiary) public onlyOwner {
-        require(shares[_beneficiary] > 0, "You cannot release tokens!");
         _release(_beneficiary);
     }
 

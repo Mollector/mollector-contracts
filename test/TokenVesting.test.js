@@ -51,7 +51,7 @@ contract("TokenVesting", ([owner, bob, tom, alice, noShare]) => {
       await truffleAssert.fails(
         vesting.release({ from: noShare }),
         truffleAssert.ErrorType.REVERT,
-        "You dont have share"
+        "Dont have share"
       )
 
       await time.advanceBlockTo($.latestBlock + 10)
@@ -74,7 +74,7 @@ contract("TokenVesting", ([owner, bob, tom, alice, noShare]) => {
       await truffleAssert.fails(
         vesting.release({ from: noShare }),
         truffleAssert.ErrorType.REVERT,
-        "You dont have share"
+        "Dont have share"
       ) // block 12
 
       await time.advanceBlockTo($.latestBlock + 10 + 3) // 13
