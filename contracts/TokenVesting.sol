@@ -39,6 +39,13 @@ contract TokenVesting is Ownable {
         uint256 _cliffNumberBlock,
         uint256 _durationNumberBlock
     ) {
+        _init(_token, _tge, _startBlock, _cliffNumberBlock, _durationNumberBlock);
+    }
+    function _init(IERC20 _token,
+        uint256 _tge,
+        uint256 _startBlock,
+        uint256 _cliffNumberBlock,
+        uint256 _durationNumberBlock) private {
         require(
             _cliffNumberBlock <= _durationNumberBlock,
             "Cliff has to be lower or equal to duration"
@@ -50,6 +57,14 @@ contract TokenVesting is Ownable {
 
         cliff = _startBlock.add(_cliffNumberBlock);
         duration = _durationNumberBlock;
+    }
+
+    function init(IERC20 _token,
+        uint256 _tge,
+        uint256 _startBlock,
+        uint256 _cliffNumberBlock,
+        uint256 _durationNumberBlock) public onlyOwner {
+        _init(_token, _tge, _startBlock, _cliffNumberBlock, _durationNumberBlock);
     }
 
     function totalBeneficiaries() public view returns (uint) {
