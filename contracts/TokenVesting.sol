@@ -36,36 +36,34 @@ contract TokenVesting is Ownable {
     constructor(
         IERC20 _token,
         uint256 _tge,
-        uint256 _startBlock,
-        uint256 _cliffNumberBlock,
-        uint256 _durationNumberBlock
+        uint256 _cliff,
+        uint256 _duration
     ) {
-        _init(_token, _tge, _startBlock, _cliffNumberBlock, _durationNumberBlock);
+        _init(_token, _tge, _cliff, _duration);
     }
+
     function _init(IERC20 _token,
         uint256 _tge,
-        uint256 _startBlock,
-        uint256 _cliffNumberBlock,
-        uint256 _durationNumberBlock) private {
+        uint256 _cliff,
+        uint256 _duration) private {
         require(
-            _cliffNumberBlock <= _durationNumberBlock,
+            _cliff <= _duration,
             "Cliff has to be lower or equal to duration"
         );
 
         token = _token;
         TGE = _tge;
-        start = _startBlock;
+        start = _tge;
 
-        cliff = _startBlock.add(_cliffNumberBlock);
-        duration = _durationNumberBlock;
+        cliff = start.add(_cliff);
+        duration = _duration;
     }
 
     function init(IERC20 _token,
         uint256 _tge,
-        uint256 _startBlock,
-        uint256 _cliffNumberBlock,
-        uint256 _durationNumberBlock) public onlyOwner {
-        _init(_token, _tge, _startBlock, _cliffNumberBlock, _durationNumberBlock);
+        uint256 _cliff,
+        uint256 _duration) public onlyOwner {
+        _init(_token, _tge, _cliff, _duration);
     }
 
     function totalBeneficiaries() public view returns (uint) {
@@ -197,5 +195,10 @@ contract TokenVesting is Ownable {
 
     function unlockFor(address _beneficiary) public onlyOwner {
         _unlock(_beneficiary);
+    }
+
+    function unlockAndRelease() public {
+        _unlock(msg.sender);
+        _release(msg.sender);
     }
 }
