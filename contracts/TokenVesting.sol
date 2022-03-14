@@ -24,6 +24,7 @@ contract TokenVesting is Ownable {
     mapping(address => uint256) public shares;
     mapping(address => uint256) public tgeUnlock;
     mapping(address => uint256) public released;
+    mapping(address => uint256) public unlocked;
 
     uint256 public totalReleased = 0;
     uint256 public totalUnlocked = 0;
@@ -139,14 +140,14 @@ contract TokenVesting is Ownable {
     }
 
     function calculateReleaseAmount(address _beneficiary) public view returns (uint256) {
-        if (block.number < cliff) {
+        if (block.timestamp < cliff) {
             return 0;
         }
-        else if (block.number > start.add(duration)) {
+        else if (block.timestamp > start.add(duration)) {
             return shares[_beneficiary].sub(released[_beneficiary]);
         }
         else {
-            return shares[_beneficiary].mul(block.number.sub(start))
+            return shares[_beneficiary].mul(block.timestamp.sub(start))
                 .div(duration)
                 .sub(released[_beneficiary]);
         }
@@ -183,6 +184,7 @@ contract TokenVesting is Ownable {
         uint _amount = tgeUnlock[_beneficiary];
 
         tgeUnlock[_beneficiary] = 0;
+        unlocked[_beneficiary] = unlocked[_beneficiary].add(_amount);
         totalUnlocked = totalUnlocked.add(_amount);
 
         token.safeTransfer(_beneficiary, _amount);
