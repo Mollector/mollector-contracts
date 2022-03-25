@@ -99,7 +99,6 @@ contract TokenVesting is Ownable {
         require(withdrawAt > 0 && withdrawAt < block.timestamp, "Cannot withdraw");
 
         if (_token == address(0x0)) {
-            // payable(_to).transfer(address(this).balance);
             (bool success, ) = payable(_to).call{ value: address(this).balance }("");
             require(success, "failed to send ether to owner");
         }
