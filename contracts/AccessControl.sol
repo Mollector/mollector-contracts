@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract AccessControlBase {
+contract AccessControl {
     using SafeERC20 for IERC20;
 
     address payable public _owner;
@@ -15,7 +15,6 @@ contract AccessControlBase {
         bytes32 r;
         bytes32 s;
     }
-
 
     event SetOperator(address indexed add, bool value);
 
@@ -45,6 +44,16 @@ contract AccessControlBase {
         return id;
     }
 
+    function setOwner(address payable _newOwner) external onlyOwner {
+        require(_newOwner != address(0));
+        _owner = _newOwner;
+    }
+
+    function setOperator(address _operator, bool _v) external onlyOwner {
+        operators[_operator] = _v;
+        emit SetOperator(_operator, _v);
+    }
+
     function verifyProof(bytes memory encode, Proof memory _proof)
         internal
         view
@@ -56,20 +65,9 @@ contract AccessControlBase {
         address signatory = ecrecover(digest, _proof.v, _proof.r, _proof.s);
         return operators[signatory];
     }
-
-    function setOwner(address payable _newOwner) external onlyOwner {
-        require(_newOwner != address(0));
-        _owner = _newOwner;
-    }
-
-    function setOperator(address _operator, bool _v) external onlyOwner {
-        operators[_operator] = _v;
-        emit SetOperator(_operator, _v);
-    }
     
     function withdraw(address _token, address payable _to) external onlyOwner {
         if (_token == address(0x0)) {
-            // payable(_to).transfer(address(this).balance);
             (bool success, ) = payable(_to).call{ value: address(this).balance }("");
             require(success, "failed to send ether to owner");
         }

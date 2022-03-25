@@ -5,13 +5,13 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
-import "./AccessControlBase.sol";
+import "./AccessControl.sol";
 
 interface IMoleculeCore {
     function newCyBloc(address _owner, uint256[5] memory _info, uint256 _mentor1, uint256 _mentor2) external returns (uint256);
 }
 
-contract MoleculePack is AccessControlBase, ERC721Enumerable {
+contract MoleculePack is AccessControl, ERC721Enumerable {
     struct PackOpen {
         uint256 tokenId;
         uint256[5] gene; // [class, trait1, trait2, trait3, seed]
@@ -33,7 +33,7 @@ contract MoleculePack is AccessControlBase, ERC721Enumerable {
 
     event MolPacksOpened(address indexed receiver, PackOpen PacksOpen);
     
-    constructor(address _owner, address _NFTContract) ERC721("Mollector Genesis Pack", "MOLPACK") AccessControlBase(_owner) {
+    constructor(address _owner, address _NFTContract) ERC721("Mollector Genesis Pack", "MOLPACK") AccessControl(_owner) {
         NFTContract = IMoleculeCore(_NFTContract);
     }
 
