@@ -7,10 +7,10 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
-import "./AccessControlBase.sol";
+import "./AccessControl.sol";
 import "./MoleculePack.sol";
 
-contract MoleculePackSale is AccessControlBase {
+contract MoleculePackSale is AccessControl {
     using SafeMath for uint256;
 
     MoleculePack public MOL_PACK;
@@ -39,7 +39,7 @@ contract MoleculePackSale is AccessControlBase {
         uint256 _start,
         uint256 _end,
         uint256 _maxPerUser
-    ) AccessControlBase (_owner) {
+    ) AccessControl (_owner) {
         MOL_PACK = MoleculePack(_molPackNFT);
         PACK_TYPE = _packType;
         PACK_PRICE = _price;
