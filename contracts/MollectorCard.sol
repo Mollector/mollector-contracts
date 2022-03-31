@@ -48,11 +48,11 @@ contract MollectorCard is MollectorCardBase {
         _burn(_tokenId2);
     }
 
-    function levelUp(uint _tokenId) public {
+    function levelUp(uint _tokenId, uint _toLevel) public {
         require(ownerOf(_tokenId) == msg.sender, "You are not owner of token");
 
-        uint newDNA = levelUpDNA(DNAs[_tokenId]);
-        _update(_token_tokenIdId1, newDNA);
+        uint newDNA = levelUpDNA(DNAs[_tokenId], _toLevel);
+        _update(_tokenId, newDNA);
     }
 
     function mutant(uint _tokenId) public {
