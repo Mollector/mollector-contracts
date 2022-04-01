@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "./AccessControl.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-abstract contract MollectorCardBase is ERC721Enumerable, AccessControl {
+abstract contract MollectorCardBase is ERC721Enumerable, Ownable {
     string public baseURI = "https://nftmetadata.mollector.com/card/";
     string public contractURIPrefix = "https://nftmetadata.mollector.com/card/";
     bool public paused = false;
@@ -27,6 +27,7 @@ abstract contract MollectorCardBase is ERC721Enumerable, AccessControl {
 
         require(!paused, "token transfer while paused");
     }
+    
     function togglePause() external onlyOwner {
         paused = !paused;
     }

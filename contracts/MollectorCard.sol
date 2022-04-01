@@ -16,13 +16,26 @@ contract MollectorCard is MollectorCardBase {
     NFTLink[] public NFTLinks;
     mapping(uint => mapping(uint => uint)) CardLinks; // MolTokenId => NFT Contract Index => NFT Contract's tokenId
 
+    address[] public spawnerList;
+    mapping(address => bool) spanwer;
+
+    address[] public managerList;
+    mapping(address => bool) manager;
+
+    address[] public linkerList;
+    mapping(address => bool) linker;
+
+
     event Spawned(uint256 indexed _tokenId, address indexed _owner, uint256 _dna);
     event Updated(uint256 indexed _tokenId, uint256 _dna);
+    event Link(uint indexed _tokenId, uint _nftLinkIndex, uint _nftLinkTokenId);
 
     constructor(address _owner) ERC721("CyBloc", "BLOC") AccessControl(_owner) {
     }
 
-    function _spawn(address _owner, uint256 _dna) internal returns (uint256) {
+    function spawn(address _owner, uint256 _dna) internal returns (uint256) {
+        require(spanwer[msg.sender], "No permistion");
+        
         DNAs.push(_dna);
         
         uint256 newCyblocId = DNAs.length - 1;
@@ -33,10 +46,24 @@ contract MollectorCard is MollectorCardBase {
         return newCyblocId;
     }
 
-    function _update(uint _tokenId, uint256 _dna) internal {
+    function update(uint _tokenId, uint256 _dna) internal {
+        require(manager[msg.sender], "No permistion");
         DNAs[_tokenId] = _dna;
 
         emit Updated(_tokenId, _dna);
+    }
+
+    function link(uint _tokenId, uint _nftLinkIndex, uint _nftLinkTokenId, Proof memory _proof) public {
+        require(NFTLinks[_nftLinkIndex].add != address(0x0), "Invalid NFTLink");
+        require(ownerOf(_tokenId) == msg.sender, "You are not owner of token");
+        
+        
+        bytes memory encode = abi.encodePacked(_tokenId, _nftLinkIndex, _nftLinkTokenId, msg.sender);
+        require(verifyProof(encode, _proof), "Wrong proof");
+
+        CardLinks[_tokenId][_nftLinkIndex] = _nftLinkTokenId;
+
+        emit Link(_tokenId, _nftLinkIndex, _nftLinkTokenId);
     }
 
     function fusion(uint _tokenId1, uint _tokenId2) public {
@@ -60,15 +87,5 @@ contract MollectorCard is MollectorCardBase {
 
         uint newDNA = mutantDNA(DNAs[_tokenId]);
         _update(_tokenId, newDNA);
-    }
-
-    function linkNFT(uint _tokenId, uint _nftLinkIndex, uint _nftLinkTokenId, Proof memory _proof) public {
-        require(NFTLinks[_nftLinkIndex].add != address(0x0), "Invalid NFTLink");
-        require(ownerOf(_tokenId) == msg.sender, "You are not owner of token");
-
-        bytes memory encode = abi.encodePacked(_tokenId, _nftLinkIndex, _nftLinkTokenId, msg.sender);
-        require(verifyProof(encode, _proof), "Wrong proof");
-
-        CardLinks[_tokenId][_nftLinkIndex] = _nftLinkTokenId;
     }
 }
