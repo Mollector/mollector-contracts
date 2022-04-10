@@ -9,6 +9,14 @@ abstract contract MollectorCardBase is ERC721Enumerable, Ownable {
     string public contractURIPrefix = "https://nftmetadata.mollector.com/card/";
     bool public paused = false;
 
+    address[] public operators;
+    mapping(address => bool) public operator;
+
+    modifier onlyOperator() {
+        require(operator[msg.sender], "No permission");
+        _;
+    }
+
     modifier whenNotPaused() {
         require(!paused, "Paused");
         _;
@@ -38,5 +46,23 @@ abstract contract MollectorCardBase is ERC721Enumerable, Ownable {
 
     function setContractURI(string memory _uri) external onlyOwner {
         contractURIPrefix = _uri;
+    }
+
+    function addOperator(address _add) public onlyOwner {
+        require(!operator[_add], "It's operator already");
+        operators.push(_add);
+        operator[_add] = true;
+    }
+
+    function removeOperator(address _add) public onlyOwner {
+        require(operator[_add], "It's not operator");
+        operator[_add] = false;
+        for (uint i = 0; i < operators.length; i++) {
+            if (operators[i] == _add) {
+                operators[i] = operators[operators.length - 1];
+                operators.pop();
+                break;
+            }
+        }
     }
 }

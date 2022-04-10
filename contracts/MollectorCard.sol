@@ -6,47 +6,26 @@ import "./AccessControl.sol";
 import "./MollectorCardBase.sol";
 
 contract MollectorCard is MollectorCardBase {
-    struct NFTLink {
+    struct Link {
         uint network;
         address add;
     }
 
     uint[] public DNAs; /// 10002000120034002300
 
-    NFTLink[] public NFTLinks;
-    mapping(uint => mapping(uint => uint)) CardLinks; // MolTokenId => NFT Contract Index => NFT Contract's tokenId
-
-    address[] public operators;
-    mapping(address => bool) operator;
+    Link[] public Links;
+    mapping(uint => mapping(uint => uint)) public CardLinks; // MolTokenId => NFT Contract Index => NFT Contract's tokenId
 
     event Spawned(uint256 indexed _tokenId, address indexed _owner, uint256 _dna);
     event Updated(uint256 indexed _tokenId, uint256 _dna);
-    event Link(uint indexed _tokenId, uint _nftLinkIndex, uint _nftLinkTokenId);
+    event Linked(uint indexed _tokenId, uint _nftLinkIndex, uint _nftLinkTokenId);
+    event AddLink(uint indexed _id, uint _network, address _add);
 
     constructor(address _owner) ERC721("Mollector Card", "MOLCARD") {
     }
 
-    modifier onlyOperator() {
-        require(operator[msg.sender], "No permission");
-        _;
-    }
-
-    function addOperator(address _add) public onlyOwner {
-        require(!operator[_add], "It's operator already");
-        operators.push(_add);
-        operator[_add] = true;
-    }
-
-    function removeOperator(address _add) public onlyOwner {
-        require(operator[_add], "It's not operator");
-        operator[_add] = false;
-        for (uint i = 0; i < operators.length; i++) {
-            if (operators[i] == _add) {
-                operators[i] = operators[operators.length - 1];
-                operators.pop();
-                break;
-            }
-        }
+    function burn(uint _tokenId) public {
+        _burn(_tokenId);
     }
 
     function spawn(address _owner, uint256 _dna) public onlyOperator returns (uint256) {
@@ -60,22 +39,30 @@ contract MollectorCard is MollectorCardBase {
         return newCyblocId;
     }
 
-    function burn(uint _tokenId) public {
-        _burn(_tokenId);
-    }
-
     function update(uint _tokenId, uint256 _dna) public onlyOperator {
+        require(_exists(_tokenId), "Nonexistent token");
+
         DNAs[_tokenId] = _dna;
 
         emit Updated(_tokenId, _dna);
     }
 
     function link(uint _tokenId, uint _nftLinkIndex, uint _nftLinkTokenId) public onlyOperator {
-        require(NFTLinks[_nftLinkIndex].add != address(0x0), "Invalid NFTLink");
+        require(_exists(_tokenId), "Nonexistent token");
+        require(Links[_nftLinkIndex].add != address(0x0), "Invalid NFTLink");
         
         CardLinks[_tokenId][_nftLinkIndex] = _nftLinkTokenId;
 
-        emit Link(_tokenId, _nftLinkIndex, _nftLinkTokenId);
+        emit Linked(_tokenId, _nftLinkIndex, _nftLinkTokenId);
+    }
+
+    function addLink(uint _network, address _add) public onlyOperator {
+        Links.push(Link({
+            network: _network,
+            add: _add
+        }));
+
+        emit AddLink(Links.length - 1, _network, _add);
     }
 
     // function fusion(uint _tokenId1, uint _tokenId2) public {
