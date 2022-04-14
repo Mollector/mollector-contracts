@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "./AccessControl.sol";
 import "./MollectorCardBase.sol";
 
 contract MollectorCard is MollectorCardBase {
@@ -17,6 +16,7 @@ contract MollectorCard is MollectorCardBase {
     mapping(uint => mapping(uint => uint)) public CardLinks; // MolTokenId => NFT Contract Index => NFT Contract's tokenId
 
     event Spawned(uint256 indexed _tokenId, address indexed _owner, uint256 _dna);
+    event Burned(uint256 indexed _tokenId);
     event Updated(uint256 indexed _tokenId, uint256 _dna);
     event Linked(uint indexed _tokenId, uint _nftLinkIndex, uint _nftLinkTokenId);
     event AddLink(uint indexed _id, uint _network, address _add);
@@ -24,8 +24,14 @@ contract MollectorCard is MollectorCardBase {
     constructor(address _owner) ERC721("Mollector Card", "MOLCARD") {
     }
 
-    function burn(uint _tokenId) public {
+    /**
+        Only burn by Operator, and Operator is a SmartContract that define how and why it burns 
+        an item, This function help improve UX 
+     */
+    function burn(uint _tokenId) public onlyOperator {
         _burn(_tokenId);
+
+        emit Burned(_tokenId);
     }
 
     function spawn(address _owner, uint256 _dna) public onlyOperator returns (uint256) {
@@ -64,27 +70,4 @@ contract MollectorCard is MollectorCardBase {
 
         emit AddLink(Links.length - 1, _network, _add);
     }
-
-    // function fusion(uint _tokenId1, uint _tokenId2) public {
-    //     require(ownerOf(_tokenId1) == msg.sender && ownerOf(_tokenId2) == msg.sender, "You are not owner of tokens");
-
-    //     uint newDNA = fusionDNA(DNAs[_tokenId1], DNAs[_tokenId2]);
-
-    //     _update(_tokenId1, newDNA);
-    //     _burn(_tokenId2);
-    // }
-
-    // function levelUp(uint _tokenId, uint _toLevel) public {
-    //     require(ownerOf(_tokenId) == msg.sender, "You are not owner of token");
-
-    //     uint newDNA = levelUpDNA(DNAs[_tokenId], _toLevel);
-    //     _update(_tokenId, newDNA);
-    // }
-
-    // function mutant(uint _tokenId) public {
-    //     require(ownerOf(_tokenId) == msg.sender, "You are not owner of token");
-
-    //     uint newDNA = mutantDNA(DNAs[_tokenId]);
-    //     _update(_tokenId, newDNA);
-    // }
 }
