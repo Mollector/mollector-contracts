@@ -22,10 +22,10 @@ contract UpgradeCard {
         MC.update(_tokenId, newDNA);
     }
 
-    function mutant(uint _tokenId) public {
+    function mutant(uint _tokenId, uint _seed) public {
         require(MC.ownerOf(_tokenId) == msg.sender, "You are not owner of token");
-        (,, uint rarity,,,) = DNAGenerator.parse(MC.DNAs(_tokenId));
-        uint newDNA = DNAGenerator.updateRarityAndLevel(MC.DNAs(_tokenId), rarity + 1, 1);
+        
+        uint newDNA = DNAGenerator.updateSeed(MC.DNAs(_tokenId), _seed);
         
         MC.update(_tokenId, newDNA);
     }
