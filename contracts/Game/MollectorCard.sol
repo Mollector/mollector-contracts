@@ -21,7 +21,7 @@ contract MollectorCard is MollectorCardBase {
     event Linked(uint indexed _tokenId, uint _nftLinkIndex, uint _nftLinkTokenId);
     event AddLink(uint indexed _id, uint _network, address _add);
 
-    constructor(address _owner) ERC721("Mollector Card", "MOLCARD") {
+    constructor() ERC721("Mollector Card", "MOLCARD") {
     }
 
     /**

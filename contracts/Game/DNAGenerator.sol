@@ -2,85 +2,59 @@
 pragma solidity ^0.8.0;
 
 library DNAGenerator {
-    function generate(uint version, uint cardId, uint rarity, uint level, uint[5] memory skills, uint seed) public pure returns (uint gene) {
+    function generate(uint version, uint cardId, uint rarity, uint level, uint seed) public pure returns (uint gene) {
         require(version <= 9999999, "DNAGenerator: Wrong version");
-        require(1 <= cardId && cardId <= 9999999999, "DNAGenerator: Wrong cardId");
+        require(1 <= cardId && cardId <= 999999999999, "DNAGenerator: Wrong cardId");
         require(1 <= rarity && rarity <= 99, "DNAGenerator: Wrong rarity");
         require(1 <= level && level <= 99, "DNAGenerator: Wrong level");
-        require(skills[0] <= 9999, "DNAGenerator: Wrong skill 1");
-        require(skills[1] <= 9999, "DNAGenerator: Wrong skill 2");
-        require(skills[2] <= 9999, "DNAGenerator: Wrong skill 3");
-        require(skills[3] <= 9999, "DNAGenerator: Wrong skill 4");
-        require(skills[4] <= 9999, "DNAGenerator: Wrong skill 5");
 
-        gene = version * 10 ** 34
-                    + cardId * 10 ** 24
-                    + rarity * 10 ** 22
-                    + level * 10 ** 20
-                    + skills[0] * 10 ** 16
-                    + skills[1] * 10 ** 12
-                    + skills[2] * 10 ** 8
-                    + skills[3] * 10 ** 4
-                    + skills[4];
+        gene = version * 10 ** 16
+                + cardId * 10 ** 4
+                + rarity * 10 ** 2
+                + level;
 
-        gene = gene * 10**34 + seed % 10 ** 30;
+        gene = gene * 10**50 + seed % 10 ** 50;
 
-        (uint256 v, uint256 c, uint256 r, uint256 l, uint256[5] memory s, uint256 se) = parse(gene);
+        (uint256 v, uint256 c, uint256 r, uint256 l, uint256 s) = parse(gene);
         
         require(v == version
             && c == cardId
             && r == rarity
             && l == level
-            && s[0] == skills[0]
-            && s[1] == skills[1]
-            && s[2] == skills[2]
-            && s[3] == skills[3]
-            && s[4] == skills[4]
-            && se == seed % 10**30);
+            && s == seed % 10**50);
     }
 
-    function parse(uint dna) public pure returns (uint version, uint cardId, uint rarity, uint level, uint[5] memory skills, uint seed) {
-        seed = dna % 10 ** 30;
-        dna = dna / 10 ** 34;
+    function parse(uint dna) public pure returns (uint version, uint cardId, uint rarity, uint level, uint seed) {
+        seed = dna % 10 ** 50;
+        dna = dna / 10 ** 50;
         
-        version     =  dna           / 10**34;
-        cardId      = (dna % 10**34) / 10**24;
-        rarity      = (dna % 10**24) / 10**22;
-        level       = (dna % 10**22) / 10**20;
-        skills[0]   = (dna % 10**20) / 10**16;
-        skills[1]   = (dna % 10**16) / 10**12;
-        skills[2]   = (dna % 10**12) / 10**8;
-        skills[3]   = (dna % 10**8 ) / 10**4;
-        skills[4]   = (dna % 10**4 );
+        version     =  dna           / 10**16;
+        cardId      = (dna % 10**16) / 10**4;
+        rarity      = (dna % 10**4 ) / 10**2;
+        level       = (dna % 10**2 );
     }
 
     function updateRarityAndLevel(uint dna, uint newRarity, uint newLevel) public pure returns (uint newDNA) {
-        (uint version, uint cardId,,, uint[5] memory skills, uint seed) = parse(dna);
+        (uint version, uint cardId,,, uint seed) = parse(dna);
 
-        return generate(version, cardId, newRarity, newLevel, skills, seed);
+        return generate(version, cardId, newRarity, newLevel, seed);
     }
 
     function updateLevel(uint dna, uint newLevel) public pure returns (uint newDNA) {
-        (uint version, uint cardId, uint rarity,, uint[5] memory skills, uint seed) = parse(dna);
+        (uint version, uint cardId, uint rarity,, uint seed) = parse(dna);
 
-        return generate(version, cardId, rarity, newLevel, skills, seed);
+        return generate(version, cardId, rarity, newLevel, seed);
     }
 
     function updateRarity(uint dna, uint newRarity) public pure returns (uint newDNA) {
-        (uint version, uint cardId,, uint level, uint[5] memory skills, uint seed) = parse(dna);
+        (uint version, uint cardId,, uint level, uint seed) = parse(dna);
 
-        return generate(version, cardId, newRarity, level, skills, seed);
+        return generate(version, cardId, newRarity, level, seed);
     }
 
     function updateSeed(uint dna, uint newSeed) public pure returns (uint newDNA) {
-        (uint version, uint cardId, uint rarity, uint level, uint[5] memory skills,) = parse(dna);
+        (uint version, uint cardId, uint rarity, uint level,) = parse(dna);
 
-        return generate(version, cardId, rarity, level, skills, newSeed);
-    }
-
-    function updateSkills(uint dna, uint[5] memory newSkills) public pure returns (uint newDNA) {
-        (uint version, uint cardId, uint rarity, uint level,, uint seed) = parse(dna);
-
-        return generate(version, cardId, rarity, level, newSkills, seed);
+        return generate(version, cardId, rarity, level, newSeed);
     }
 }
