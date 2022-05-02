@@ -13,7 +13,7 @@ contract UpgradeCard {
 
     function levelUp(uint _tokenId, uint _toLevel) public {
         require(MC.ownerOf(_tokenId) == msg.sender, "You are not owner of token");
-        (,,, uint level,,) = DNAGenerator.parse(MC.DNAs(_tokenId));
+        (,,, uint level,) = DNAGenerator.parse(MC.DNAs(_tokenId));
         require(level < 5, "Cannot level up");
         require(level < _toLevel, "Wrong level");
 
@@ -32,9 +32,8 @@ contract UpgradeCard {
 
     function fusion(uint _tokenId1, uint _tokenId2) public {
         require(MC.ownerOf(_tokenId1) == msg.sender && MC.ownerOf(_tokenId2) == msg.sender, "You are not owner of tokens");
-
-        (, uint cardId1, uint rarity1, uint level1,,) = DNAGenerator.parse(MC.DNAs(_tokenId1));
-        (, uint cardId2, uint rarity2, uint level2,,) = DNAGenerator.parse(MC.DNAs(_tokenId2));
+        (, uint cardId1, uint rarity1, uint level1,) = DNAGenerator.parse(MC.DNAs(_tokenId1));
+        (, uint cardId2, uint rarity2, uint level2,) = DNAGenerator.parse(MC.DNAs(_tokenId2));
 
         //1: common
         //2: rare
