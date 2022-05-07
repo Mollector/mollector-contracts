@@ -23,6 +23,7 @@ contract MoleculePack is Ownable, ERC721Enumerable {
     uint[] packSold = [0, 0, 0, 0];
     
     IMollectorCard public NFTContract;
+    address public signer;
 
     uint256[] public packs;
 
@@ -49,6 +50,10 @@ contract MoleculePack is Ownable, ERC721Enumerable {
         NFTContract = IMollectorCard(_NFTContract);
     }
 
+    function setSigner(address _signer) external onlyOwner {
+        signer = _signer;
+    }
+
     function setPrice(uint[] memory _packPrice) external onlyOwner {
         packPrice = _packPrice;
     }
@@ -62,18 +67,41 @@ contract MoleculePack is Ownable, ERC721Enumerable {
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal virtual override {
-        require(false, "No Transfer");
+        require(from == address(0x0) || to == address(0x0), "No Transfer");
         super._beforeTokenTransfer(from, to, tokenId);
+    }
+
+
+    function verifyProof(uint _tokenId, uint[] memory gene, uint8 v, bytes32 r, bytes32 s)
+        internal
+        view
+        returns (bool)
+    {
+        bytes32 digest = keccak256(
+            abi.encodePacked(address(this), msg.sender, _tokenId, gene[0], gene[1], gene[2], gene[3], gene[4])
+        );
+        address signatory = ecrecover(digest, v, r, s);
+
+        if (signer != address(0x0)) {
+            return signatory == signer;
+        }
+
+        return true;
     }
 
     function open(
         uint[] memory tokenIds, 
-        uint[][] memory genes) external {
+        uint[][] memory genes
+        // uint8[] memory v,
+        // bytes32[] memory r,
+        // bytes32[] memory s
+        ) external {
         // uint version, uint cardId, uint rarity, uint level, uint seed
 
         for (uint256 i = 0; i < tokenIds.length; i++) {
             uint tokenId = tokenIds[i];
             uint[] memory gene = genes[i];
+            // require(verifyProof, tokenId, gene, v[i], r[i], s[i]);
             require(ownerOf(tokenId) == msg.sender, "MoleculePack: Wrong pack");
             
             _burn(tokenId);
@@ -103,7 +131,7 @@ contract MoleculePack is Ownable, ERC721Enumerable {
         packSold[_packType] += _quantity;
 
         for (uint256 i = 0; i < _quantity; i++) {
-            _mint(msg.sender, _packType);
+            mint(msg.sender, _packType);
         }
 
         payable(owner()).transfer(totalPrice);
