@@ -16,7 +16,7 @@ contract Escrow is Pausable, Ownable {
 
   struct NftDeposit {
     address owner;
-    uint256 tokenid;
+    uint256 tokenId;
     uint64 depositdAt;
   }
 
@@ -38,7 +38,7 @@ contract Escrow is Pausable, Ownable {
   event DepositTokenSuccessful(
     address indexed _tokenAddress,
     uint256 _amount,
-    address _owner,
+    address _owner
   );  
 
   event WithdrawNftSuccessful(
@@ -50,7 +50,7 @@ contract Escrow is Pausable, Ownable {
   event WithdrawTokenSuccessful(
     address indexed _tokenAddress,
     uint256 _amount,
-    address _owner,
+    address _owner
   );  
 
 
@@ -66,7 +66,8 @@ contract Escrow is Pausable, Ownable {
     address _tokenAddress,
     uint256 _amount
   )
-    external
+    public
+    payable
     whenNotPaused
   {
     address _owner = msg.sender;
@@ -125,12 +126,12 @@ contract Escrow is Pausable, Ownable {
     require(0 < _tokenDeposit.amount, "Mollector: no deposited amount");
     require(_amount <= _tokenDeposit.amount, "Mollector: Wrong amount");
 
-    _transferTokenOut(_tokenAddress, msg.sender, amount);
+    _transferTokenOut(_tokenAddress, msg.sender, _amount);
 
     delete tokenDeposits[_tokenAddress][msg.sender];
     emit WithdrawTokenSuccessful(
       _tokenAddress,
-      amount,
+      _amount,
       msg.sender
     );
   }  
@@ -145,11 +146,11 @@ contract Escrow is Pausable, Ownable {
     //Todo: verifyProof
     require(acceptDepositNFTs[_nftAddress], 'Mollector: wrong NFT'); 
 
-    NftDeposits storage _nftDeposits = nftDeposits[_nftAddress][msg.sender];
+    NftDeposit storage _nftDeposits = nftDeposits[_nftAddress][msg.sender];
       
     require(0 <= _nftDeposits.tokenId, "Mollector: no deposited token");
 
-    _transferNftOut(_tokenAddress, msg.sender, _tokenId);
+    _transferNftOut(_nftAddress, msg.sender, _tokenId);
 
     delete nftDeposits[_nftAddress][msg.sender];
     emit WithdrawNftSuccessful(
@@ -172,7 +173,7 @@ contract Escrow is Pausable, Ownable {
 
   function _escrowToken(address _tokenAddress, address _owner, uint256 _amount) internal {
       if (_tokenAddress == address(0)) {
-        require(msg.value == amount, "INVALID MSG.VALUE");
+        require(msg.value == _amount, "INVALID MSG.VALUE");
       } else {
         IERC20(_tokenAddress).safeTransferFrom(
             msg.sender,
@@ -181,7 +182,7 @@ contract Escrow is Pausable, Ownable {
         );
       } 
 
-    TokenDeposit memory _tokenDeposit = tokenDeposits(
+    TokenDeposit memory _tokenDeposit = TokenDeposit(
       _owner,
       uint128(_amount),
       uint64(block.timestamp)
@@ -194,7 +195,7 @@ contract Escrow is Pausable, Ownable {
     IERC721 _nftContract = _getNftContract(_nftAddress);
     _nftContract.transferFrom(_owner, address(this), _tokenId);
 
-    NftDeposit memory _nftDeposit = nftDeposits(
+    NftDeposit memory _nftDeposit = NftDeposit(
       _owner,
       uint128(_tokenId),
       uint64(block.timestamp)
@@ -212,11 +213,10 @@ contract Escrow is Pausable, Ownable {
 
   function _transferTokenOut(address _tokenAddress, address _receiver, uint256 _amount) internal {
     if (_tokenAddress == address(0)) {
-        _receiver.transfer(_amount);
+        payable(_receiver).transfer(_amount);
     } else {
         IERC20(_tokenAddress).transfer(_receiver, _amount);
     }
   }  
-
 
 }
