@@ -10,7 +10,7 @@ contract MollectorCard is MollectorCardBase {
         address add;
     }
 
-    uint[] public DNAs; /// 10002000120034002300
+    mapping(uint => uint) public DNAs; // tokenId => dna
 
     Link[] public Links;
     mapping(uint => mapping(uint => uint)) public CardLinks; // MolTokenId => NFT Contract Index => NFT Contract's tokenId
@@ -30,19 +30,23 @@ contract MollectorCard is MollectorCardBase {
      */
     function burn(uint _tokenId) public onlyOperator {
         _burn(_tokenId);
+        delete DNAs[_tokenId];
 
         emit Burned(_tokenId);
     }
 
-    function spawn(address _owner, uint256 _dna) public onlyOperator returns (uint256) {
-        DNAs.push(_dna);
+    function spawn(address _owner, uint256 _tokenId, uint256 _dna) public onlyOperator returns (uint256) {
+        if (_tokenId == 0) {
+            _tokenId = totalSupply() + 1;
+        }
+        require(DNAs[_tokenId] == 0, "TokenId already in use");
+        DNAs[_tokenId] = _dna;
         
-        uint256 newCyblocId = DNAs.length - 1;
-        _safeMint(_owner, newCyblocId);
+        _safeMint(_owner, _tokenId);
         
-        emit Spawned(newCyblocId, _owner, _dna);
+        emit Spawned(_tokenId, _owner, _dna);
 
-        return newCyblocId;
+        return _tokenId;
     }
 
     function update(uint _tokenId, uint256 _dna) public onlyOperator {

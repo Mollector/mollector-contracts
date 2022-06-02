@@ -41,7 +41,7 @@ contract UpgradeCard {
         require(rarity1 < 3, "Your card has max rarity, cannot upgrade");
         require(rarity1 == rarity2, "Not same rarity");
         require(cardId1 == cardId2, "Not same cardId");
-        require(level1 == level2, "Not save level");
+        require(level1 == level2, "Not same level");
         require(level1 == 5, "Must be level 5");
 
         uint newDNA = DNAGenerator.updateRarityAndLevel(MC.DNAs(_tokenId1), rarity1 + 1, 1);
