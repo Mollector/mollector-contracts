@@ -5,9 +5,9 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "../../AccessControl.sol";
 
-
-contract Escrow is Pausable, Ownable {
+contract Escrow is Pausable, AccessControl {
   using SafeERC20 for IERC20;
 
   mapping(address => bool) public acceptDepositTokens;
@@ -25,6 +25,17 @@ contract Escrow is Pausable, Ownable {
     uint256 amount;
     uint64 depositdAt;
   }  
+
+  struct TokenWithdraw {
+    address tokenAddress;
+    uint256 amount;
+  }  
+
+  struct NftWithdraw {
+    address nftAddress;
+    uint256 tokenId;
+  }    
+
   //mapping owner address -> nft/token -> infor data
   mapping (address => mapping (address => NftDeposit)) public nftDeposits;
   mapping (address => mapping (address => TokenDeposit)) public tokenDeposits;
@@ -53,6 +64,7 @@ contract Escrow is Pausable, Ownable {
     address _owner
   );  
 
+  constructor(address _owner) AccessControl(_owner) { }
 
   function setAcceptToken(address _depositToken, bool _accept) public onlyOwner {
     acceptDepositTokens[_depositToken] = _accept;
@@ -111,53 +123,49 @@ contract Escrow is Pausable, Ownable {
     );
   }  
 
-  function withdrawToken(
-    address _tokenAddress,
-    uint256 _amount
-  )
+  function withdrawToken(TokenWithdraw[] memory tokenWithdraws, Proof[] memory _proofs)
     external
     whenNotPaused
   {
-    //Todo: verifyProof
-    require(acceptDepositTokens[_tokenAddress], 'Mollector: wrong token'); 
-    require(0 < _amount, "Mollector: Invalid withdraw amount");
-    TokenDeposit storage _tokenDeposit = tokenDeposits[_tokenAddress][msg.sender];
-      
-    require(0 < _tokenDeposit.amount, "Mollector: no deposited amount");
-    require(_amount <= _tokenDeposit.amount, "Mollector: Wrong amount");
+    require(tokenWithdraws.length > 0, "Mollector: empty tokenWithdraws");
+    
+    for (uint256 i = 0; i < tokenWithdraws.length; i++) {
+      TokenWithdraw memory tokenWithdraw = tokenWithdraws[i];
 
-    _transferTokenOut(_tokenAddress, msg.sender, _amount);
+      require(verifyProof(abi.encodePacked(tokenWithdraw.tokenAddress, msg.sender), _proofs[i]), "Mollector: Wrong proof");
+      require(acceptDepositTokens[tokenWithdraw.tokenAddress], 'Mollector: wrong token'); 
+      require(0 < tokenWithdraw.amount, "Mollector: Invalid withdraw amount");
 
-    delete tokenDeposits[_tokenAddress][msg.sender];
-    emit WithdrawTokenSuccessful(
-      _tokenAddress,
-      _amount,
-      msg.sender
-    );
+      _transferTokenOut(tokenWithdraw.tokenAddress, msg.sender, tokenWithdraw.amount);
+
+      emit WithdrawTokenSuccessful(
+        tokenWithdraw.tokenAddress,
+        tokenWithdraw.amount,
+        msg.sender
+      );
+    }
   }  
 
-  function withdrawNft(
-    address _nftAddress,
-    uint256 _tokenId
-  )
+  function withdrawNft(NftWithdraw[] memory nftWithdraws, Proof[] memory _proofs )
     external
     whenNotPaused
   {
-    //Todo: verifyProof
-    require(acceptDepositNFTs[_nftAddress], 'Mollector: wrong NFT'); 
+    require(nftWithdraws.length > 0, "Mollector: empty nftWithdraws");
 
-    NftDeposit storage _nftDeposits = nftDeposits[_nftAddress][msg.sender];
-      
-    require(0 <= _nftDeposits.tokenId, "Mollector: no deposited token");
+    for (uint256 i = 0; i < nftWithdraws.length; i++) {
+      NftWithdraw memory nftWithdraw = nftWithdraws[i];
 
-    _transferNftOut(_nftAddress, msg.sender, _tokenId);
+      require(acceptDepositNFTs[nftWithdraw.nftAddress], 'Mollector: wrong NFT'); 
+      require(verifyProof(abi.encodePacked(nftWithdraw.nftAddress, msg.sender), _proofs[i]), "Mollector: Wrong proof");
 
-    delete nftDeposits[_nftAddress][msg.sender];
-    emit WithdrawNftSuccessful(
-      _nftAddress,
-      _tokenId,
-      msg.sender
-    );
+      _transferNftOut(nftWithdraw.nftAddress, msg.sender, nftWithdraw.tokenId);
+
+      emit WithdrawNftSuccessful(
+        nftWithdraw.nftAddress,
+        nftWithdraw.tokenId,
+        msg.sender
+      );
+    }
   }    
 
   function _getNftContract(address _nftAddress) internal pure returns (IERC721) {
@@ -182,26 +190,22 @@ contract Escrow is Pausable, Ownable {
         );
       } 
 
-    TokenDeposit memory _tokenDeposit = TokenDeposit(
-      _owner,
-      uint128(_amount),
-      uint64(block.timestamp)
-    );
-
-    tokenDeposits[_tokenAddress][_owner] = _tokenDeposit;      
+    tokenDeposits[_tokenAddress][_owner] = TokenDeposit({
+                                                          owner: _owner,
+                                                          amount: uint128(_amount),
+                                                          depositdAt: uint64(block.timestamp)
+                                                        });      
   }
 
   function _escrowNft(address _nftAddress, address _owner, uint256 _tokenId) internal {
     IERC721 _nftContract = _getNftContract(_nftAddress);
     _nftContract.transferFrom(_owner, address(this), _tokenId);
 
-    NftDeposit memory _nftDeposit = NftDeposit(
-      _owner,
-      uint128(_tokenId),
-      uint64(block.timestamp)
-    );
-
-    nftDeposits[_nftAddress][_owner] = _nftDeposit;      
+    nftDeposits[_nftAddress][_owner] = NftDeposit({
+                                                    owner: _owner,
+                                                    tokenId: uint128(_tokenId),
+                                                    depositdAt: uint64(block.timestamp)
+                                                  });      
   }
 
   function _transferNftOut(address _nftAddress, address _receiver, uint256 _tokenId) internal {
