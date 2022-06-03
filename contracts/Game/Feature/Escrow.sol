@@ -5,13 +5,13 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../../AccessControl.sol";
 
-contract Escrow is Pausable, AccessControl {
+contract Escrow is Pausable, Ownable {
   using SafeERC20 for IERC20;
 
   mapping(address => bool) public acceptDepositTokens;
   mapping(address => bool) public acceptDepositNFTs;
+  mapping(address => bool) public operators;
 
 
   struct NftDeposit {
@@ -37,8 +37,8 @@ contract Escrow is Pausable, AccessControl {
   }    
 
   //mapping owner address -> nft/token -> infor data
-  mapping (address => mapping (address => NftDeposit)) public nftDeposits;
-  mapping (address => mapping (address => TokenDeposit)) public tokenDeposits;
+  mapping (address => mapping (address => NftDeposit[])) public nftDeposits;
+  mapping (address => mapping (address => TokenDeposit[])) public tokenDeposits;
 
   event DepositNftSuccessful(
     address indexed _nftAddress,
@@ -64,7 +64,35 @@ contract Escrow is Pausable, AccessControl {
     address _owner
   );  
 
-  constructor(address _owner) AccessControl(_owner) { }
+  struct Proof {
+      uint8 v;
+      bytes32 r;
+      bytes32 s;
+  }
+
+  constructor(address _operator) {
+    operators[_operator] = true;
+  }  
+
+  function getChainID() public view returns (uint256) {
+      uint256 id;
+      assembly {
+          id := chainid()
+      }
+      return id;
+  }
+
+  function verifyProof(bytes memory encode, Proof memory _proof)
+      internal
+      view
+      returns (bool)
+  {
+      bytes32 digest = keccak256(
+          abi.encodePacked(getChainID(), address(this), encode)
+      );
+      address signatory = ecrecover(digest, _proof.v, _proof.r, _proof.s);
+      return operators[signatory];
+  }      
 
   function setAcceptToken(address _depositToken, bool _accept) public onlyOwner {
     acceptDepositTokens[_depositToken] = _accept;
@@ -73,6 +101,10 @@ contract Escrow is Pausable, AccessControl {
   function setAcceptNft(address _depositNft, bool _accept) public onlyOwner {
     acceptDepositNFTs[_depositNft] = _accept;
   }
+
+  function setOperator(address _operator, bool _v) external onlyOwner {
+      operators[_operator] = _v;
+  }  
 
   function depositToken(
     address _tokenAddress,
@@ -190,22 +222,22 @@ contract Escrow is Pausable, AccessControl {
         );
       } 
 
-    tokenDeposits[_tokenAddress][_owner] = TokenDeposit({
-                                                          owner: _owner,
-                                                          amount: uint128(_amount),
-                                                          depositdAt: uint64(block.timestamp)
-                                                        });      
+    tokenDeposits[_tokenAddress][_owner].push(TokenDeposit({
+                                                owner: _owner,
+                                                amount: uint128(_amount),
+                                                depositdAt: uint64(block.timestamp)
+                                              }));      
   }
 
   function _escrowNft(address _nftAddress, address _owner, uint256 _tokenId) internal {
     IERC721 _nftContract = _getNftContract(_nftAddress);
     _nftContract.transferFrom(_owner, address(this), _tokenId);
 
-    nftDeposits[_nftAddress][_owner] = NftDeposit({
+    nftDeposits[_nftAddress][_owner].push(NftDeposit({
                                                     owner: _owner,
                                                     tokenId: uint128(_tokenId),
                                                     depositdAt: uint64(block.timestamp)
-                                                  });      
+                                                  }));      
   }
 
   function _transferNftOut(address _nftAddress, address _receiver, uint256 _tokenId) internal {
