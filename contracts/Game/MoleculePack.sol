@@ -27,7 +27,7 @@ contract MoleculePack is Ownable, ERC721Enumerable {
 
     uint256[] public packs;
 
-    event OpenedPack(address indexed receiver, uint tokenId, uint[] gene);
+    event OpenedPack(address indexed receiver, uint tokenId);
     event SoldPack(address indexed buyer, uint packType, uint quantity);
     
     constructor(address _NFTContract) ERC721("Mollector Genesis Pack", "MOLPACK") {
@@ -71,14 +71,22 @@ contract MoleculePack is Ownable, ERC721Enumerable {
         super._beforeTokenTransfer(from, to, tokenId);
     }
 
+    function getChainID() public view returns (uint256) {
+        uint256 id;
+        assembly {
+            id := chainid()
+        }
+        return id;
+    }
 
-    function verifyProof(uint _tokenId, uint[] memory gene, uint8 v, bytes32 r, bytes32 s)
+
+    function verifyProof(uint _packId, uint _tokenId, uint[] memory gene, uint8 v, bytes32 r, bytes32 s)
         internal
         view
         returns (bool)
     {
         bytes32 digest = keccak256(
-            abi.encodePacked(address(this), msg.sender, _tokenId, gene[0], gene[1], gene[2], gene[3], gene[4])
+            abi.encodePacked(getChainID(), address(this), msg.sender, _packId, _tokenId, gene[0], gene[1], gene[2], gene[3], gene[4])
         );
         address signatory = ecrecover(digest, v, r, s);
 
@@ -90,34 +98,38 @@ contract MoleculePack is Ownable, ERC721Enumerable {
     }
 
     function open(
-        uint[] memory tokenIds, 
-        uint[][] memory genes
-        // uint8[] memory v,
-        // bytes32[] memory r,
-        // bytes32[] memory s
+        uint[] memory packIds, 
+        uint[] memory tokenIds,
+        uint[][] memory genes,
+        uint8[] memory v,
+        bytes32[] memory r,
+        bytes32[] memory s
         ) external {
         // uint version, uint cardId, uint rarity, uint level, uint seed
 
-        for (uint256 i = 0; i < tokenIds.length; i++) {
-            uint tokenId = tokenIds[i];
-            uint[] memory gene = genes[i];
-            // require(verifyProof, tokenId, gene, v[i], r[i], s[i]);
-            require(ownerOf(tokenId) == msg.sender, "MoleculePack: Wrong pack");
+        uint index = 0;
+
+        for (uint256 i = 0; i < packIds.length; i++) {
+            uint packId = packIds[i];
+            require(ownerOf(packId) == msg.sender, "MoleculePack: Wrong pack");
             
-            _burn(tokenId);
+            _burn(packId);
+            for (uint256 j = 0; j < 5; j++) {
+                uint[] memory gene = genes[index];
+                require(verifyProof(packId, tokenIds[index], gene, v[index], r[index], s[index]));
+                NFTContract.spawn(msg.sender, tokenIds[i],
+                    DNAGenerator.generate(
+                        gene[0], // version
+                        gene[1], // cardId
+                        gene[2], // rarity
+                        gene[3], // level
+                        gene[4]  // seed
+                    )
+                );
+                index++;
+            }
 
-            NFTContract.spawn(
-                msg.sender, 
-                DNAGenerator.generate(
-                    gene[0], // version
-                    gene[1], // cardId
-                    gene[2], // rarity
-                    gene[3], // level
-                    gene[4]  // seed
-                )
-            );
-
-            emit OpenedPack(msg.sender, tokenId, gene);                    
+            emit OpenedPack(msg.sender, packId);                    
         }
     }
 
