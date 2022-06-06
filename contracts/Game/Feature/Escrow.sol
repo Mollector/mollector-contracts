@@ -5,9 +5,11 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract Escrow is Pausable, Ownable {
   using SafeERC20 for IERC20;
+  using SafeMath for uint256;
 
   mapping(address => bool) public acceptDepositTokens;
   mapping(address => bool) public acceptDepositNFTs;
@@ -39,6 +41,7 @@ contract Escrow is Pausable, Ownable {
   //mapping owner address -> nft/token -> infor data
   mapping (address => mapping (address => NftDeposit[])) public nftDeposits;
   mapping (address => mapping (address => TokenDeposit[])) public tokenDeposits;
+  mapping(address => mapping(address => uint256)) public userCommitedAmount;
 
   event DepositNftSuccessful(
     address indexed _nftAddress,
@@ -128,6 +131,9 @@ contract Escrow is Pausable, Ownable {
 
     _escrowToken(_tokenAddress, _owner, amount);
 
+    uint256 commitedAmount = userCommitedAmount[_owner][_tokenAddress];
+    userCommitedAmount[_owner][_tokenAddress] = commitedAmount.add(_amount);
+
     emit DepositTokenSuccessful(
       _tokenAddress,
       amount,
@@ -164,11 +170,14 @@ contract Escrow is Pausable, Ownable {
     for (uint256 i = 0; i < tokenWithdraws.length; i++) {
       TokenWithdraw memory tokenWithdraw = tokenWithdraws[i];
 
-      require(verifyProof(abi.encodePacked(tokenWithdraw.tokenAddress, msg.sender), _proofs[i]), "Mollector: Wrong proof");
+      //require(verifyProof(abi.encodePacked(tokenWithdraw.tokenAddress, msg.sender), _proofs[i]), "Mollector: Wrong proof");
       require(acceptDepositTokens[tokenWithdraw.tokenAddress], 'Mollector: wrong token'); 
       require(0 < tokenWithdraw.amount, "Mollector: Invalid withdraw amount");
 
       _transferTokenOut(tokenWithdraw.tokenAddress, msg.sender, tokenWithdraw.amount);
+
+      uint256 commitedAmount = userCommitedAmount[msg.sender][tokenWithdraw.tokenAddress];
+      userCommitedAmount[msg.sender][tokenWithdraw.tokenAddress] = commitedAmount.sub(tokenWithdraw.amount);
 
       emit WithdrawTokenSuccessful(
         tokenWithdraw.tokenAddress,
@@ -188,7 +197,7 @@ contract Escrow is Pausable, Ownable {
       NftWithdraw memory nftWithdraw = nftWithdraws[i];
 
       require(acceptDepositNFTs[nftWithdraw.nftAddress], 'Mollector: wrong NFT'); 
-      require(verifyProof(abi.encodePacked(nftWithdraw.nftAddress, msg.sender), _proofs[i]), "Mollector: Wrong proof");
+      //require(verifyProof(abi.encodePacked(nftWithdraw.nftAddress, msg.sender), _proofs[i]), "Mollector: Wrong proof");
 
       _transferNftOut(nftWithdraw.nftAddress, msg.sender, nftWithdraw.tokenId);
 
