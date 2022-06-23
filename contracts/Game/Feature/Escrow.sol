@@ -42,7 +42,7 @@ contract Escrow is Pausable, Ownable {
     //mapping owner address -> infor data
     mapping(address => NftDeposit[]) public nftDeposits;
     mapping(address => TokenDeposit[]) public tokenDeposits;
-    mapping(address => uint256) public userCommitedAmount;
+    mapping(address => uint256) public userDepositedAmount;
 
     event DepositNftSuccessful(
         address indexed _nftAddress,
@@ -115,6 +115,14 @@ contract Escrow is Pausable, Ownable {
         operators[_operator] = _v;
     }
 
+    function getUserCountNftDeposited(address _add) external view returns (uint256) {
+        return nftDeposits[_add].length;
+    }    
+
+    function getUserCountTokenDeposited(address _add) external view returns (uint256) {
+        return tokenDeposits[_add].length;
+    }      
+
     function depositToken(strToken[] memory deposit)
         public
         payable
@@ -141,8 +149,8 @@ contract Escrow is Pausable, Ownable {
 
             _escrowToken(tokenDeposit.tokenAddress, _owner, amount);
 
-            uint256 commitedAmount = userCommitedAmount[_owner];
-            userCommitedAmount[_owner] = commitedAmount.add(tokenDeposit.amount);
+            uint256 depositedAmount = userDepositedAmount[_owner];
+            userDepositedAmount[_owner] = depositedAmount.add(tokenDeposit.amount);
 
             emit DepositTokenSuccessful(tokenDeposit.tokenAddress, amount, _owner);
         }
@@ -191,8 +199,8 @@ contract Escrow is Pausable, Ownable {
                 tokenWithdraw.amount
             );
 
-            uint256 commitedAmount = userCommitedAmount[msg.sender];
-            userCommitedAmount[msg.sender] = commitedAmount.sub(tokenWithdraw.amount);
+            uint256 depositedAmount = userDepositedAmount[msg.sender];
+            userDepositedAmount[msg.sender] = depositedAmount.sub(tokenWithdraw.amount);
 
             emit WithdrawTokenSuccessful(
                 tokenWithdraw.tokenAddress,
