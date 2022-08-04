@@ -14,28 +14,32 @@ contract Escrow is Pausable, Ownable {
     // mapping(address => bool) public acceptDepositTokens;
     // mapping(address => bool) public acceptDepositNFTs;
     mapping(address => bool) public operators;
-    address public NFT;
-    address public TOKEN;
+    // address public NFT;
+    // address public TOKEN;
 
     struct NftDeposit {
-        address owner;
+        address ownerAddress;
+        string ownerAccount;
         uint256 tokenId;
         uint64 depositdAt;
     }
 
     struct TokenDeposit {
-        address owner;
+        address ownerAddress;
+        string ownerAccount;
         uint256 amount;
         uint64 depositdAt;
     }
 
     struct strToken {
         address tokenAddress;
+        string ownerAccount;
         uint256 amount;
     }
 
     struct strNft {
         address nftAddress;
+        string ownerAccount;
         uint256 tokenId;
     }
 
@@ -74,10 +78,10 @@ contract Escrow is Pausable, Ownable {
         bytes32 s;
     }
 
-    constructor(address _operator, address _nft, address _token) {
+    constructor(address _operator) {
         operators[_operator] = true;
-        NFT = _nft;
-        TOKEN = _token;
+        // NFT = _nft;
+        // TOKEN = _token;
     }
 
     function getChainID() public view returns (uint256) {
@@ -133,10 +137,10 @@ contract Escrow is Pausable, Ownable {
 
         for (uint256 i = 0; i < deposit.length; i++) {
             strToken memory tokenDeposit = deposit[i];
-            require(
-                tokenDeposit.tokenAddress == TOKEN,
-                "Mollector: wrong deposit token"
-            );
+            // require(
+            //     tokenDeposit.tokenAddress == TOKEN,
+            //     "Mollector: wrong deposit token"
+            // );
             require(tokenDeposit.amount > 0, "Mollector: AMOUNT MUST BE GREATER THAN 0");
 
             uint256 amount = 0;
@@ -147,7 +151,7 @@ contract Escrow is Pausable, Ownable {
                 amount = tokenDeposit.amount;
             }
 
-            _escrowToken(tokenDeposit.tokenAddress, _owner, amount);
+            _escrowToken(tokenDeposit.ownerAccount, tokenDeposit.tokenAddress, _owner, amount);
 
             uint256 depositedAmount = userDepositedAmount[_owner];
             userDepositedAmount[_owner] = depositedAmount.add(tokenDeposit.amount);
@@ -165,10 +169,10 @@ contract Escrow is Pausable, Ownable {
 
         for (uint256 i = 0; i < deposit.length; i++) {    
             strNft memory nftDeposit = deposit[i];    
-            require(nftDeposit.nftAddress == NFT, "Mollector: wrong deposit NFT");
+            // require(nftDeposit.nftAddress == NFT, "Mollector: wrong deposit NFT");
             require(_owns(nftDeposit.nftAddress, _owner, nftDeposit.tokenId));
 
-            _escrowNft(nftDeposit.nftAddress, _owner, nftDeposit.tokenId);
+            _escrowNft(nftDeposit.ownerAccount, nftDeposit.nftAddress, _owner, nftDeposit.tokenId);
 
             emit DepositNftSuccessful(nftDeposit.nftAddress, nftDeposit.tokenId, _owner);
         }
@@ -184,10 +188,10 @@ contract Escrow is Pausable, Ownable {
             strToken memory tokenWithdraw = tokenWithdraws[i];
 
             //require(verifyProof(abi.encodePacked(tokenWithdraw.tokenAddress, msg.sender), _proofs[i]), "Mollector: Wrong proof");
-            require(
-                tokenWithdraw.tokenAddress == TOKEN,
-                "Mollector: wrong token"
-            );
+            // require(
+            //     tokenWithdraw.tokenAddress == TOKEN,
+            //     "Mollector: wrong token"
+            // );
             require(
                 0 < tokenWithdraw.amount,
                 "Mollector: Invalid withdraw amount"
@@ -219,10 +223,10 @@ contract Escrow is Pausable, Ownable {
         for (uint256 i = 0; i < nftWithdraws.length; i++) {
             strNft memory nftWithdraw = nftWithdraws[i];
 
-            require(
-                nftWithdraw.nftAddress == NFT,
-                "Mollector: wrong NFT"
-            );
+            // require(
+            //     nftWithdraw.nftAddress == NFT,
+            //     "Mollector: wrong NFT"
+            // );
             //require(verifyProof(abi.encodePacked(nftWithdraw.nftAddress, msg.sender), _proofs[i]), "Mollector: Wrong proof");
 
             _transferNftOut(
@@ -259,6 +263,7 @@ contract Escrow is Pausable, Ownable {
     }
 
     function _escrowToken(
+        string memory _ownerAccount,
         address _tokenAddress,
         address _owner,
         uint256 _amount
@@ -275,7 +280,8 @@ contract Escrow is Pausable, Ownable {
 
         tokenDeposits[_owner].push(
             TokenDeposit({
-                owner: _owner,
+                ownerAccount: _ownerAccount,
+                ownerAddress: _owner,
                 amount: uint128(_amount),
                 depositdAt: uint64(block.timestamp)
             })
@@ -283,6 +289,7 @@ contract Escrow is Pausable, Ownable {
     }
 
     function _escrowNft(
+        string memory _ownerAccount,
         address _nftAddress,
         address _owner,
         uint256 _tokenId
@@ -292,7 +299,8 @@ contract Escrow is Pausable, Ownable {
 
         nftDeposits[_owner].push(
             NftDeposit({
-                owner: _owner,
+                ownerAccount: _ownerAccount,
+                ownerAddress: _owner,
                 tokenId: uint128(_tokenId),
                 depositdAt: uint64(block.timestamp)
             })
