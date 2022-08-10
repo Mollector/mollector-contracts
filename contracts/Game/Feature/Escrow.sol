@@ -6,9 +6,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "../IMollectorCard.sol";
 
-contract Escrow is Pausable, Ownable {
+contract Escrow is Pausable, Ownable, IERC721Receiver {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
@@ -64,6 +65,19 @@ contract Escrow is Pausable, Ownable {
         operators[_operator] = true;
     }
 
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external override returns (bytes4) {
+        msg.sender.call(data);
+        return
+            bytes4(
+                keccak256("onERC721Received(address,address,uint256,bytes)")
+            );
+    }
+
     function getChainID() public view returns (uint256) {
         uint256 id;
         assembly {
@@ -88,13 +102,57 @@ contract Escrow is Pausable, Ownable {
         operators[_operator] = _v;
     }
 
-    function getUserCountNftDeposited(address _add) external view returns (uint256) {
+    function getUserCountNftDeposited(address _add) public view returns (uint256) {
         return nftDeposits[_add].length;
     }    
 
-    function getUserCountTokenDeposited(address _add) external view returns (uint256) {
+    function getUserCountTokenDeposited(address _add) public view returns (uint256) {
         return tokenDeposits[_add].length;
-    }      
+    }    
+
+    function getTokenDepositOf(
+        address owner,
+        uint256 limit,
+        uint256 from
+    )
+        public
+        view
+        returns (
+            uint256 total,
+            TokenDeposit[] memory tokenDeposited
+        )
+    {
+        total = getUserCountTokenDeposited(owner);
+        if (from < total) {
+            uint256 n = total - from > limit ? limit : total - from;
+            tokenDeposited = new TokenDeposit[](n);
+            for (uint256 i = 0; i < n; i++) {
+                tokenDeposited[i] = tokenDeposits[owner][i + from];
+            }
+        }
+    }  
+
+    function getNftDepositOf(
+        address owner,
+        uint256 limit,
+        uint256 from
+    )
+        public
+        view
+        returns (
+            uint256 total,
+            NftDeposit[] memory nftDeposited
+        )
+    {
+        total = getUserCountNftDeposited(owner);
+        if (from < total) {
+            uint256 n = total - from > limit ? limit : total - from;
+            nftDeposited = new NftDeposit[](n);
+            for (uint256 i = 0; i < n; i++) {
+                nftDeposited[i] = nftDeposits[owner][i + from];
+            }
+        }
+    }    
 
     function depositToken(strToken memory deposit)
         public
@@ -184,13 +242,12 @@ contract Escrow is Pausable, Ownable {
             if(nftWithdraw.upgradeable){
                 IMollectorCard mollectorCard = IMollectorCard(nftWithdraw.nftAddress);
                 if(mollectorCard.DNAs(nftWithdraw.tokenId) == 0){
-                    mollectorCard.spawn(msg.sender, nftWithdraw.tokenId, nftWithdraw.dna);
+                    mollectorCard.spawn(address(this), nftWithdraw.tokenId, nftWithdraw.dna);
                 }
 
                 if(mollectorCard.DNAs(nftWithdraw.tokenId) != nftWithdraw.dna){
-                    mollectorCard.update(nftWithdraw.tokenId, nftWithdraw.tokenId);
+                    mollectorCard.update(nftWithdraw.tokenId, nftWithdraw.dna);
                 }
-            
             }
 
             _transferNftOut(
