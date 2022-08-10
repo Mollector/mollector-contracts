@@ -6,37 +6,43 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "../IMollectorCard.sol";
 
-contract Escrow is Pausable, Ownable {
+contract Escrow is Pausable, Ownable, IERC721Receiver {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
-    // mapping(address => bool) public acceptDepositTokens;
-    // mapping(address => bool) public acceptDepositNFTs;
     mapping(address => bool) public operators;
-    address public NFT;
-    address public TOKEN;
 
     struct NftDeposit {
-        address owner;
+        address nftAddress;
+        address ownerAddress;
+        string ownerAccount;
         uint256 tokenId;
         uint64 depositdAt;
     }
 
     struct TokenDeposit {
-        address owner;
+        address tokenAddress;
+        address ownerAddress;
+        string ownerAccount;
         uint256 amount;
         uint64 depositdAt;
     }
 
     struct strToken {
         address tokenAddress;
+        string ownerAccount;
         uint256 amount;
     }
 
     struct strNft {
         address nftAddress;
+        string ownerAccount;
+        uint256 dna;
         uint256 tokenId;
+        bool upgradeable;
     }
 
     //mapping owner address -> infor data
@@ -44,29 +50,10 @@ contract Escrow is Pausable, Ownable {
     mapping(address => TokenDeposit[]) public tokenDeposits;
     mapping(address => uint256) public userDepositedAmount;
 
-    event DepositNftSuccessful(
-        address indexed _nftAddress,
-        uint256 indexed _tokenId,
-        address _owner
-    );
-
-    event DepositTokenSuccessful(
-        address indexed _tokenAddress,
-        uint256 _amount,
-        address _owner
-    );
-
-    event WithdrawNftSuccessful(
-        address indexed _nftAddress,
-        uint256 indexed _tokenId,
-        address _owner
-    );
-
-    event WithdrawTokenSuccessful(
-        address indexed _tokenAddress,
-        uint256 _amount,
-        address _owner
-    );
+    event DepositNftSuccessful(address indexed _nftAddress, uint256 indexed _tokenId, address _owner );
+    event DepositTokenSuccessful( address indexed _tokenAddress, uint256 _amount, address _owner );
+    event WithdrawNftSuccessful( address indexed _nftAddress, uint256 indexed _tokenId, uint256 _dna, address _owner );
+    event WithdrawTokenSuccessful( address indexed _tokenAddress, uint256 _amount, address _owner );
 
     struct Proof {
         uint8 v;
@@ -74,10 +61,21 @@ contract Escrow is Pausable, Ownable {
         bytes32 s;
     }
 
-    constructor(address _operator, address _nft, address _token) {
+    constructor(address _operator) {
         operators[_operator] = true;
-        NFT = _nft;
-        TOKEN = _token;
+    }
+
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external override returns (bytes4) {
+        msg.sender.call(data);
+        return
+            bytes4(
+                keccak256("onERC721Received(address,address,uint256,bytes)")
+            );
     }
 
     function getChainID() public view returns (uint256) {
@@ -100,60 +98,87 @@ contract Escrow is Pausable, Ownable {
         return operators[signatory];
     }
 
-    // function setAcceptToken(address _depositToken, bool _accept)
-    //     public
-    //     onlyOwner
-    // {
-    //     acceptDepositTokens[_depositToken] = _accept;
-    // }
-
-    // function setAcceptNft(address _depositNft, bool _accept) public onlyOwner {
-    //     acceptDepositNFTs[_depositNft] = _accept;
-    // }
-
     function setOperator(address _operator, bool _v) external onlyOwner {
         operators[_operator] = _v;
     }
 
-    function getUserCountNftDeposited(address _add) external view returns (uint256) {
+    function getUserCountNftDeposited(address _add) public view returns (uint256) {
         return nftDeposits[_add].length;
     }    
 
-    function getUserCountTokenDeposited(address _add) external view returns (uint256) {
+    function getUserCountTokenDeposited(address _add) public view returns (uint256) {
         return tokenDeposits[_add].length;
-    }      
+    }    
 
-    function depositToken(strToken[] memory deposit)
+    function getTokenDepositOf(
+        address owner,
+        uint256 limit,
+        uint256 from
+    )
+        public
+        view
+        returns (
+            uint256 total,
+            TokenDeposit[] memory tokenDeposited
+        )
+    {
+        total = getUserCountTokenDeposited(owner);
+        if (from < total) {
+            uint256 n = total - from > limit ? limit : total - from;
+            tokenDeposited = new TokenDeposit[](n);
+            for (uint256 i = 0; i < n; i++) {
+                tokenDeposited[i] = tokenDeposits[owner][i + from];
+            }
+        }
+    }  
+
+    function getNftDepositOf(
+        address owner,
+        uint256 limit,
+        uint256 from
+    )
+        public
+        view
+        returns (
+            uint256 total,
+            NftDeposit[] memory nftDeposited
+        )
+    {
+        total = getUserCountNftDeposited(owner);
+        if (from < total) {
+            uint256 n = total - from > limit ? limit : total - from;
+            nftDeposited = new NftDeposit[](n);
+            for (uint256 i = 0; i < n; i++) {
+                nftDeposited[i] = nftDeposits[owner][i + from];
+            }
+        }
+    }    
+
+    function depositToken(strToken memory deposit)
         public
         payable
         whenNotPaused
     {
-        require(deposit.length > 0, "Mollector: empty deposit");
         address _owner = msg.sender;
+        strToken memory tokenDeposit = deposit;
+        require(tokenDeposit.amount > 0, "Mollector: AMOUNT MUST BE GREATER THAN 0");
 
-        for (uint256 i = 0; i < deposit.length; i++) {
-            strToken memory tokenDeposit = deposit[i];
-            require(
-                tokenDeposit.tokenAddress == TOKEN,
-                "Mollector: wrong deposit token"
-            );
+        uint256 amount = 0;
+        if (tokenDeposit.tokenAddress == address(0)) {
+            require(msg.value > 0, "Mollector: Invalid msg.value");
+            amount = msg.value;
+        } else {
+            require(msg.value == 0, "Mollector: Invalid msg.value");
             require(tokenDeposit.amount > 0, "Mollector: AMOUNT MUST BE GREATER THAN 0");
-
-            uint256 amount = 0;
-            if (tokenDeposit.tokenAddress == address(0)) {
-                amount = msg.value;
-            } else {
-                require(msg.value == 0, "Mollector: Invalid msg.value");
-                amount = tokenDeposit.amount;
-            }
-
-            _escrowToken(tokenDeposit.tokenAddress, _owner, amount);
-
-            uint256 depositedAmount = userDepositedAmount[_owner];
-            userDepositedAmount[_owner] = depositedAmount.add(tokenDeposit.amount);
-
-            emit DepositTokenSuccessful(tokenDeposit.tokenAddress, amount, _owner);
+            amount = tokenDeposit.amount;
         }
+
+        _escrowToken(tokenDeposit.ownerAccount, tokenDeposit.tokenAddress, _owner, amount);
+
+        uint256 depositedAmount = userDepositedAmount[_owner];
+        userDepositedAmount[_owner] = depositedAmount.add(tokenDeposit.amount);
+
+        emit DepositTokenSuccessful(tokenDeposit.tokenAddress, amount, _owner);
     }
 
     function depositNft(strNft[] memory deposit)
@@ -165,10 +190,9 @@ contract Escrow is Pausable, Ownable {
 
         for (uint256 i = 0; i < deposit.length; i++) {    
             strNft memory nftDeposit = deposit[i];    
-            require(nftDeposit.nftAddress == NFT, "Mollector: wrong deposit NFT");
             require(_owns(nftDeposit.nftAddress, _owner, nftDeposit.tokenId));
 
-            _escrowNft(nftDeposit.nftAddress, _owner, nftDeposit.tokenId);
+            _escrowNft(nftDeposit.ownerAccount, nftDeposit.nftAddress, _owner, nftDeposit.tokenId);
 
             emit DepositNftSuccessful(nftDeposit.nftAddress, nftDeposit.tokenId, _owner);
         }
@@ -184,10 +208,6 @@ contract Escrow is Pausable, Ownable {
             strToken memory tokenWithdraw = tokenWithdraws[i];
 
             //require(verifyProof(abi.encodePacked(tokenWithdraw.tokenAddress, msg.sender), _proofs[i]), "Mollector: Wrong proof");
-            require(
-                tokenWithdraw.tokenAddress == TOKEN,
-                "Mollector: wrong token"
-            );
             require(
                 0 < tokenWithdraw.amount,
                 "Mollector: Invalid withdraw amount"
@@ -218,12 +238,17 @@ contract Escrow is Pausable, Ownable {
 
         for (uint256 i = 0; i < nftWithdraws.length; i++) {
             strNft memory nftWithdraw = nftWithdraws[i];
-
-            require(
-                nftWithdraw.nftAddress == NFT,
-                "Mollector: wrong NFT"
-            );
             //require(verifyProof(abi.encodePacked(nftWithdraw.nftAddress, msg.sender), _proofs[i]), "Mollector: Wrong proof");
+            if(nftWithdraw.upgradeable){
+                IMollectorCard mollectorCard = IMollectorCard(nftWithdraw.nftAddress);
+                if(mollectorCard.DNAs(nftWithdraw.tokenId) == 0){
+                    mollectorCard.spawn(address(this), nftWithdraw.tokenId, nftWithdraw.dna);
+                }
+
+                if(mollectorCard.DNAs(nftWithdraw.tokenId) != nftWithdraw.dna){
+                    mollectorCard.update(nftWithdraw.tokenId, nftWithdraw.dna);
+                }
+            }
 
             _transferNftOut(
                 nftWithdraw.nftAddress,
@@ -234,6 +259,7 @@ contract Escrow is Pausable, Ownable {
             emit WithdrawNftSuccessful(
                 nftWithdraw.nftAddress,
                 nftWithdraw.tokenId,
+                nftWithdraw.dna,
                 msg.sender
             );
         }
@@ -259,6 +285,7 @@ contract Escrow is Pausable, Ownable {
     }
 
     function _escrowToken(
+        string memory _ownerAccount,
         address _tokenAddress,
         address _owner,
         uint256 _amount
@@ -275,7 +302,9 @@ contract Escrow is Pausable, Ownable {
 
         tokenDeposits[_owner].push(
             TokenDeposit({
-                owner: _owner,
+                tokenAddress: _tokenAddress,
+                ownerAccount: _ownerAccount,
+                ownerAddress: _owner,
                 amount: uint128(_amount),
                 depositdAt: uint64(block.timestamp)
             })
@@ -283,6 +312,7 @@ contract Escrow is Pausable, Ownable {
     }
 
     function _escrowNft(
+        string memory _ownerAccount,
         address _nftAddress,
         address _owner,
         uint256 _tokenId
@@ -292,7 +322,9 @@ contract Escrow is Pausable, Ownable {
 
         nftDeposits[_owner].push(
             NftDeposit({
-                owner: _owner,
+                nftAddress: _nftAddress,
+                ownerAccount: _ownerAccount,
+                ownerAddress: _owner,
                 tokenId: uint128(_tokenId),
                 depositdAt: uint64(block.timestamp)
             })
