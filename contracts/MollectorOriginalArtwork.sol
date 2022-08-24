@@ -4,9 +4,12 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-abstract contract MollectorOriginalArtwork is ERC721Enumerable, Ownable {
+contract MollectorOriginalArtwork is ERC721Enumerable, Ownable {
     string public baseURI = "https://demo.mollector.com/nft/picture/";
     string public contractURIPrefix = "https://demo.mollector.com/nft/picture/";
+
+    constructor() ERC721("Mollector Original Artwork", "MOA") {
+    }
 
     function _baseURI() internal view override returns (string memory) {
         return baseURI;
