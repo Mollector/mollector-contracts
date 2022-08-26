@@ -46,9 +46,8 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
     }
 
     //mapping owner address -> infor data
-    mapping(address => NftDeposit[]) public nftDeposits;
-    mapping(address => TokenDeposit[]) public tokenDeposits;
-    mapping(address => uint256) public userDepositedAmount;
+    NftDeposit[] public nftDeposits;
+    TokenDeposit[] public tokenDeposits;
 
     event DepositNftSuccessful(address indexed _nftAddress, uint256 indexed _tokenId, address _owner, string _ownerAccount, uint64 _depositedAt);
     event DepositTokenSuccessful( address indexed _tokenAddress, uint256 _amount, address _owner, string _ownerAccount, uint64 _depositedAt );
@@ -102,57 +101,13 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
         operators[_operator] = _v;
     }
 
-    function getUserCountNftDeposited(address _add) public view returns (uint256) {
-        return nftDeposits[_add].length;
+    function getCountNftDeposited() public view returns (uint256) {
+        return nftDeposits.length;
     }    
 
-    function getUserCountTokenDeposited(address _add) public view returns (uint256) {
-        return tokenDeposits[_add].length;
-    }    
-
-    function getTokenDepositOf(
-        address owner,
-        uint256 limit,
-        uint256 from
-    )
-        public
-        view
-        returns (
-            uint256 total,
-            TokenDeposit[] memory tokenDeposited
-        )
-    {
-        total = getUserCountTokenDeposited(owner);
-        if (from < total) {
-            uint256 n = total - from > limit ? limit : total - from;
-            tokenDeposited = new TokenDeposit[](n);
-            for (uint256 i = 0; i < n; i++) {
-                tokenDeposited[i] = tokenDeposits[owner][i + from];
-            }
-        }
-    }  
-
-    function getNftDepositOf(
-        address owner,
-        uint256 limit,
-        uint256 from
-    )
-        public
-        view
-        returns (
-            uint256 total,
-            NftDeposit[] memory nftDeposited
-        )
-    {
-        total = getUserCountNftDeposited(owner);
-        if (from < total) {
-            uint256 n = total - from > limit ? limit : total - from;
-            nftDeposited = new NftDeposit[](n);
-            for (uint256 i = 0; i < n; i++) {
-                nftDeposited[i] = nftDeposits[owner][i + from];
-            }
-        }
-    }    
+    function getCountTokenDeposited() public view returns (uint256) {
+        return tokenDeposits.length;
+    } 
 
     function depositToken(strToken memory deposit)
         public
@@ -174,9 +129,6 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
         }
 
         _escrowToken(tokenDeposit.ownerAccount, tokenDeposit.tokenAddress, _owner, amount);
-
-        uint256 depositedAmount = userDepositedAmount[_owner];
-        userDepositedAmount[_owner] = depositedAmount.add(tokenDeposit.amount);
 
         emit DepositTokenSuccessful(tokenDeposit.tokenAddress, amount, _owner, tokenDeposit.ownerAccount, uint64(block.timestamp));
     }
@@ -219,9 +171,6 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
                 msg.sender,
                 tokenWithdraw.amount
             );
-
-            uint256 depositedAmount = userDepositedAmount[msg.sender];
-            userDepositedAmount[msg.sender] = depositedAmount.sub(tokenWithdraw.amount);
 
             emit WithdrawTokenSuccessful(
                 tokenWithdraw.tokenAddress,
@@ -303,7 +252,7 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
             );
         }
 
-        tokenDeposits[_owner].push(
+        tokenDeposits.push(
             TokenDeposit({
                 tokenAddress: _tokenAddress,
                 ownerAccount: _ownerAccount,
@@ -323,7 +272,7 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
         IERC721 _nftContract = _getNftContract(_nftAddress);
         _nftContract.transferFrom(_owner, address(this), _tokenId);
 
-        nftDeposits[_owner].push(
+        nftDeposits.push(
             NftDeposit({
                 nftAddress: _nftAddress,
                 ownerAccount: _ownerAccount,
