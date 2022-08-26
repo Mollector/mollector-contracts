@@ -51,7 +51,7 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
     mapping(address => uint256) public userDepositedAmount;
 
     event DepositNftSuccessful(address indexed _nftAddress, uint256 indexed _tokenId, address _owner, string _ownerAccount, uint64 _depositedAt);
-    event DepositTokenSuccessful( address indexed _tokenAddress, uint256 _amount, address _owner string _ownerAccount, uint64 _depositedAt );
+    event DepositTokenSuccessful( address indexed _tokenAddress, uint256 _amount, address _owner, string _ownerAccount, uint64 _depositedAt );
     event WithdrawNftSuccessful( address indexed _nftAddress, uint256 indexed _tokenId, uint256 _dna, address _owner );
     event WithdrawTokenSuccessful( address indexed _tokenAddress, uint256 _amount, address _owner );
 
