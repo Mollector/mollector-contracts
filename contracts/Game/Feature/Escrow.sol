@@ -153,36 +153,32 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
     }
 
     function withdrawToken(
-        strToken[] memory tokenWithdraws,
-        Proof[] memory _proofs
+        strToken memory tokenWithdraw,
+        Proof memory _proofs
     ) external whenNotPaused {
-        require(tokenWithdraws.length > 0, "Mollector: empty tokenWithdraws");
 
-        for (uint256 i = 0; i < tokenWithdraws.length; i++) {
-            strToken memory tokenWithdraw = tokenWithdraws[i];
-            uint nonce = userNonce[msg.sender];
+        uint nonce = userNonce[msg.sender];
 
-            require(
-                0 < tokenWithdraw.amount,
-                "Mollector: Invalid withdraw amount"
-            );
+        require(
+            0 < tokenWithdraw.amount,
+            "Mollector: Invalid withdraw amount"
+        );
 
-            require(verifyProof(abi.encodePacked(msg.sender, tokenWithdraw.tokenAddress, tokenWithdraw.amount, nonce), _proofs[i]), "Mollector: Wrong proof");            
+        require(verifyProof(abi.encodePacked(msg.sender, tokenWithdraw.tokenAddress, tokenWithdraw.amount, nonce), _proofs), "Mollector: Wrong proof");            
 
-            _transferTokenOut(
-                tokenWithdraw.tokenAddress,
-                msg.sender,
-                tokenWithdraw.amount
-            );
+        _transferTokenOut(
+            tokenWithdraw.tokenAddress,
+            msg.sender,
+            tokenWithdraw.amount
+        );
 
-            userNonce[msg.sender] = nonce++;
+        userNonce[msg.sender] = nonce++;
 
-            emit WithdrawTokenSuccessful(
-                tokenWithdraw.tokenAddress,
-                tokenWithdraw.amount,
-                msg.sender
-            );
-        }
+        emit WithdrawTokenSuccessful(
+            tokenWithdraw.tokenAddress,
+            tokenWithdraw.amount,
+            msg.sender
+        );
     }
 
     function withdrawNft(
