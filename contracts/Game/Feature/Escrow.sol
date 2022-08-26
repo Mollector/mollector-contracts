@@ -20,7 +20,7 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
         address ownerAddress;
         string ownerAccount;
         uint256 tokenId;
-        uint64 depositdAt;
+        uint64 depositedAt;
     }
 
     struct TokenDeposit {
@@ -28,7 +28,7 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
         address ownerAddress;
         string ownerAccount;
         uint256 amount;
-        uint64 depositdAt;
+        uint64 depositedAt;
     }
 
     struct strToken {
@@ -50,8 +50,8 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
     mapping(address => TokenDeposit[]) public tokenDeposits;
     mapping(address => uint256) public userDepositedAmount;
 
-    event DepositNftSuccessful(address indexed _nftAddress, uint256 indexed _tokenId, address _owner );
-    event DepositTokenSuccessful( address indexed _tokenAddress, uint256 _amount, address _owner );
+    event DepositNftSuccessful(address indexed _nftAddress, uint256 indexed _tokenId, address _owner, uint64 _depositedAt);
+    event DepositTokenSuccessful( address indexed _tokenAddress, uint256 _amount, address _owner, uint64 _depositedAt );
     event WithdrawNftSuccessful( address indexed _nftAddress, uint256 indexed _tokenId, uint256 _dna, address _owner );
     event WithdrawTokenSuccessful( address indexed _tokenAddress, uint256 _amount, address _owner );
 
@@ -178,7 +178,7 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
         uint256 depositedAmount = userDepositedAmount[_owner];
         userDepositedAmount[_owner] = depositedAmount.add(tokenDeposit.amount);
 
-        emit DepositTokenSuccessful(tokenDeposit.tokenAddress, amount, _owner);
+        emit DepositTokenSuccessful(tokenDeposit.tokenAddress, amount, _owner, uint64(block.timestamp));
     }
 
     function depositNft(strNft[] memory deposit)
@@ -194,7 +194,7 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
 
             _escrowNft(nftDeposit.ownerAccount, nftDeposit.nftAddress, _owner, nftDeposit.tokenId);
 
-            emit DepositNftSuccessful(nftDeposit.nftAddress, nftDeposit.tokenId, _owner);
+            emit DepositNftSuccessful(nftDeposit.nftAddress, nftDeposit.tokenId, _owner, uint64(block.timestamp));
         }
     }
 
@@ -238,7 +238,9 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
 
         for (uint256 i = 0; i < nftWithdraws.length; i++) {
             strNft memory nftWithdraw = nftWithdraws[i];
-            //require(verifyProof(abi.encodePacked(nftWithdraw.nftAddress, msg.sender), _proofs[i]), "Mollector: Wrong proof");
+
+            require(verifyProof(abi.encodePacked(msg.sender, nftWithdraw.nftAddress, nftWithdraw.tokenId, nftWithdraw.dna), _proofs[i]), "Mollector: Wrong proof");
+
             if(nftWithdraw.upgradeable){
                 IMollectorCard mollectorCard = IMollectorCard(nftWithdraw.nftAddress);
                 if(mollectorCard.DNAs(nftWithdraw.tokenId) == 0){
@@ -306,7 +308,7 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
                 ownerAccount: _ownerAccount,
                 ownerAddress: _owner,
                 amount: uint128(_amount),
-                depositdAt: uint64(block.timestamp)
+                depositedAt: uint64(block.timestamp)
             })
         );
     }
@@ -326,7 +328,7 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
                 ownerAccount: _ownerAccount,
                 ownerAddress: _owner,
                 tokenId: uint128(_tokenId),
-                depositdAt: uint64(block.timestamp)
+                depositedAt: uint64(block.timestamp)
             })
         );
     }
