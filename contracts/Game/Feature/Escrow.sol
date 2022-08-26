@@ -195,6 +195,7 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
             _escrowNft(nftDeposit.ownerAccount, nftDeposit.nftAddress, _owner, nftDeposit.tokenId);
 
             emit DepositNftSuccessful(nftDeposit.nftAddress, nftDeposit.tokenId, _owner, nftDeposit.ownerAccount, uint64(block.timestamp));
+
         }
     }
 
