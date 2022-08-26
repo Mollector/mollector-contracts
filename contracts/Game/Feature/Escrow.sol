@@ -14,6 +14,7 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
     using SafeMath for uint256;
 
     mapping(address => bool) public operators;
+    mapping(address => uint) public userNonce;
 
     struct NftDeposit {
         address nftAddress;
@@ -159,18 +160,22 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
 
         for (uint256 i = 0; i < tokenWithdraws.length; i++) {
             strToken memory tokenWithdraw = tokenWithdraws[i];
+            uint nonce = userNonce[msg.sender];
 
-            //require(verifyProof(abi.encodePacked(tokenWithdraw.tokenAddress, msg.sender), _proofs[i]), "Mollector: Wrong proof");
             require(
                 0 < tokenWithdraw.amount,
                 "Mollector: Invalid withdraw amount"
             );
+
+            require(verifyProof(abi.encodePacked(msg.sender, tokenWithdraw.tokenAddress, tokenWithdraw.amount, nonce), _proofs[i]), "Mollector: Wrong proof");            
 
             _transferTokenOut(
                 tokenWithdraw.tokenAddress,
                 msg.sender,
                 tokenWithdraw.amount
             );
+
+            userNonce[msg.sender] = nonce++;
 
             emit WithdrawTokenSuccessful(
                 tokenWithdraw.tokenAddress,
@@ -188,9 +193,10 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
 
         for (uint256 i = 0; i < nftWithdraws.length; i++) {
             strNft memory nftWithdraw = nftWithdraws[i];
-
-            require(verifyProof(abi.encodePacked(msg.sender, nftWithdraw.nftAddress, nftWithdraw.tokenId, nftWithdraw.dna), _proofs[i]), "Mollector: Wrong proof");
-
+            uint nonce = userNonce[msg.sender]; 
+            
+            require(verifyProof(abi.encodePacked(msg.sender, nftWithdraw.nftAddress, nftWithdraw.tokenId, nftWithdraw.dna, nonce), _proofs[i]), "Mollector: Wrong proof");
+            
             if(nftWithdraw.upgradeable){
                 IMollectorCard mollectorCard = IMollectorCard(nftWithdraw.nftAddress);
                 if(mollectorCard.DNAs(nftWithdraw.tokenId) == 0){
@@ -208,6 +214,7 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
                 nftWithdraw.tokenId
             );
 
+            userNonce[msg.sender] = nonce++;
             emit WithdrawNftSuccessful(
                 nftWithdraw.nftAddress,
                 nftWithdraw.tokenId,
