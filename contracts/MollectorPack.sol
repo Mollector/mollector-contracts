@@ -124,7 +124,7 @@ contract MollectorPack is Ownable, ERC721Enumerable {
             for (uint256 j = 0; j < 5; j++) {
                 uint[] memory gene = genes[index];
                 require(verifyProof(packId, tokenIds[index], gene, v[index], r[index], s[index]));
-                NFTContract.spawn(msg.sender, tokenIds[i],
+                NFTContract.spawn(msg.sender, tokenIds[index],
                     DNAGenerator.generate(
                         gene[0], // version
                         gene[1], // cardId

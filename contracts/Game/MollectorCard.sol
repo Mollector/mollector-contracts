@@ -35,9 +35,7 @@ contract MollectorCard is MollectorCardBase {
     }
 
     function spawn(address _owner, uint256 _tokenId, uint256 _dna) public onlyOperator returns (uint256) {
-        if (_tokenId == 0) {
-            _tokenId = totalSupply() + 1;
-        }
+        require(_tokenId > 0, "Missing tokenId");
         require(DNAs[_tokenId] == 0, "TokenId already in use");
         DNAs[_tokenId] = _dna;
         
