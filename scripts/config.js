@@ -11,9 +11,9 @@ module.exports = {
     PRIVATE_KEY: 'd4bb4317bed750e0a4dac9abb2369a718cdf6bb534f4de2e755a18935df99869',
     
     MoleculeToken_Address: '0xC7DE28D866288fee9EeDF221D5daf3240EF92022',
-    MollectorMarket_Address: '',
+    MollectorMarket_Address: '0xC3B79E9Bb2bff1E50bAe692D988d7C736A13B39D',
     MollectorDNAGenerator_Address: '0x7688ab99b94C25781d235370634A9B09003e408B',
-    MollectorEscrow_Address: '',
+    MollectorEscrow_Address: '0xD810E6a54238466dc475593185dB6939c301b972',
     MollectorCard_Address: '0x79B8bAED9C2384188Dd7820D76282709024a38e4',
     MollectorPack_Address: '0x503ce04CC78B3d180074d39ac0573EA97f99b42c',
     MollectorUtils_Address: '0x68De4Ad688cEa46266212f63f8a037DCb9de99dA',

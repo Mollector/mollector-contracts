@@ -220,7 +220,7 @@ contract MollectorEscrow is Pausable, Ownable, IERC721Receiver {
                 msg.sender
             );
         }
-        userNonce[msg.sender] = nonce + 1;
+        userNonce[msg.sender] = nonce;
     }
 
     function _getNftContract(address _nftAddress)
