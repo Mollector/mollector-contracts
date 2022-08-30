@@ -188,9 +188,9 @@ contract MollectorEscrow is Pausable, Ownable, IERC721Receiver {
     ) external whenNotPaused {
         require(nftWithdraws.length > 0, "Mollector: empty nftWithdraws");
 
+        uint nonce = userNonce[msg.sender]; 
         for (uint256 i = 0; i < nftWithdraws.length; i++) {
             strNft memory nftWithdraw = nftWithdraws[i];
-            uint nonce = userNonce[msg.sender]; 
             
             require(verifyProof(abi.encodePacked(msg.sender, nftWithdraw.nftAddress, nftWithdraw.tokenId, nftWithdraw.dna, nonce), _proofs[i]), "Mollector: Wrong proof");
             
@@ -211,7 +211,8 @@ contract MollectorEscrow is Pausable, Ownable, IERC721Receiver {
                 nftWithdraw.tokenId
             );
 
-            userNonce[msg.sender] = nonce++;
+            nonce += 1;
+
             emit WithdrawNftSuccessful(
                 nftWithdraw.nftAddress,
                 nftWithdraw.tokenId,
@@ -219,6 +220,7 @@ contract MollectorEscrow is Pausable, Ownable, IERC721Receiver {
                 msg.sender
             );
         }
+        userNonce[msg.sender] = nonce + 1;
     }
 
     function _getNftContract(address _nftAddress)
