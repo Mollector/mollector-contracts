@@ -7,9 +7,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import "../IMollectorCard.sol";
+import "./Game/IMollectorCard.sol";
 
-contract Escrow is Pausable, Ownable, IERC721Receiver {
+contract MollectorEscrow is Pausable, Ownable, IERC721Receiver {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
@@ -66,12 +66,13 @@ contract Escrow is Pausable, Ownable, IERC721Receiver {
     }
 
     function onERC721Received(
-        address operator,
+        address sender,
         address from,
         uint256 tokenId,
         bytes calldata data
     ) external override returns (bytes4) {
-        msg.sender.call(data);
+        (bool success, ) = msg.sender.call(data);
+        
         return
             bytes4(
                 keccak256("onERC721Received(address,address,uint256,bytes)")
