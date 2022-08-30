@@ -10,12 +10,15 @@ module.exports = {
     OWNER_ADDRESS: '0x171dCA6D20b4b4e19368b2ab7b63Ae9c14Ab973D',
     PRIVATE_KEY: 'd4bb4317bed750e0a4dac9abb2369a718cdf6bb534f4de2e755a18935df99869',
     
-    MoleculeToken_Address: '',
-    MollectorMarket_Address: '',
-    MollectorEscrow_Address: '',
-    MollectorUtils_Address: '',
-    MollectorCard_Address: '',
-    MollectorPack_Address: '',
+    MoleculeToken_Address: '0xC7DE28D866288fee9EeDF221D5daf3240EF92022',
+    MollectorMarket_Address: '0xaD81f5A4cdC4Ae7f692511BB08311597a2f8ACEf',
+    MollectorDNAGenerator_Address: '0x7688ab99b94C25781d235370634A9B09003e408B',
+    MollectorEscrow_Address: '0xF77E5e2cAF4E9CC1BdDB432C6204d086eCc758D9',
+    MollectorCard_Address: '0x1661F4a3E38F623D9F82e47e277ef800ED103953',
+    MollectorPack_Address: '0xc0d69E623Ec4fF9916948446048D883404f9C8Dd',
+    MollectorUtils_Address: '0x68De4Ad688cEa46266212f63f8a037DCb9de99dA',
 
-    MollectorEscrow_Owner: '0x40e7c5aA34846968d37e2C6a2EAeec0072967872'
+    MollectorEscrow_Owner: '0x40e7c5aA34846968d37e2C6a2EAeec0072967872',
+    MollectorPack_Owner: '0x40e7c5aA34846968d37e2C6a2EAeec0072967872',
+    MollectorMarket_PaymentTokens: ['0x0000000000000000000000000000000000000000', '0x7262fa193e9590b2e075c3c16170f3f2f32f5c74']
 }

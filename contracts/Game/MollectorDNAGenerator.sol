@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-library DNAGenerator {
+contract MollectorDNAGenerator {
     function generate(uint version, uint cardId, uint rarity, uint level, uint seed) public pure returns (uint gene) {
         require(version <= 9999999, "DNAGenerator: Wrong version");
         require(1 <= cardId && cardId <= 999999999999, "DNAGenerator: Wrong cardId");

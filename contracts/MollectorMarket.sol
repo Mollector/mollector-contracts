@@ -58,10 +58,13 @@ contract MollectorMarket is Pausable, Ownable {
   );
 
 
-  constructor(uint256 _marketFee, address _feeTo) {  
+  constructor(uint256 _marketFee, address _feeTo, address[] memory _payTokens) {  
     require(_marketFee <= 10000);
     marketFee = _marketFee;
     feeTo = _feeTo;
+    for (uint i = 0; i < _payTokens.length; i++) {
+      acceptPayTokens[_payTokens[i]] = true;
+    }
   }
 
   // Modifiers to check that inputs can be safely stored with a certain

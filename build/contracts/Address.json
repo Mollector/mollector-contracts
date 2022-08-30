@@ -8113,7 +8113,7 @@
   },
   "networks": {},
   "schemaVersion": "3.4.6",
-  "updatedAt": "2022-08-30T03:40:35.428Z",
+  "updatedAt": "2022-08-30T03:51:25.893Z",
   "devdoc": {
     "details": "Collection of functions related to the address type",
     "kind": "dev",

@@ -12,12 +12,15 @@ var {
   PRIVATE_KEY,
   MoleculeToken_Address,
   MollectorMarket_Address,
+  MollectorDNAGenerator_Address,
   MollectorEscrow_Address,
   MollectorUtils_Address,
   MollectorCard_Address,
   MollectorPack_Address,
 
-  MollectorEscrow_Owner
+  MollectorEscrow_Owner,
+  MollectorPack_Owner,
+  MollectorMarket_PaymentTokens
 } = require('./config');
 
 var MoleculeToken
@@ -26,6 +29,7 @@ var MollectorEscrow
 var MollectorUtils
 var MollectorCard
 var MollectorPack
+var MollectorDNAGenerator
 
 console.log('OWNER_ADDRESS:', OWNER_ADDRESS);
 
@@ -82,7 +86,8 @@ async function deploy_MollectorMarket() {
     MollectorMarket_Address,
     'MollectorMarket',
     200,
-    OWNER_ADDRESS
+    OWNER_ADDRESS,
+    MollectorMarket_PaymentTokens
   )
 
   if (!MollectorMarket_Address) {
@@ -122,6 +127,35 @@ async function deploy_MollectorEscrow() {
 
   return MollectorEscrow;
 }
+
+
+async function deploy_MollectorDNAGenerator() {
+  if (MollectorDNAGenerator_Address) {
+    console.log('SKIP: Deploy MollectorDNAGenerator')
+  }
+  else {
+    console.log('CALL: Deploy MollectorDNAGenerator')
+  }
+
+  MollectorDNAGenerator = await Contract(
+    RPC,
+    PRIVATE_KEY,
+    GAS_PRICE_DEPLOY,
+    GAS_LIMIT,
+    MollectorDNAGenerator_Address,
+    'MollectorDNAGenerator'
+  )
+
+  if (!MollectorDNAGenerator_Address) {
+    await sleep(BLOCK_TIME);
+  }
+
+  MollectorDNAGenerator_Address = MollectorDNAGenerator.address
+  console.log('DONE: MollectorDNAGenerator:', MollectorDNAGenerator_Address)
+
+  return MollectorDNAGenerator;
+}
+
 
 async function deploy_MollectorCard() {
   if (MollectorCard_Address) {
@@ -165,7 +199,9 @@ async function deploy_MollectorPack() {
     GAS_LIMIT,
     MollectorPack_Address,
     'MollectorPack',
-    MollectorCard_Address
+    MollectorCard_Address,
+    MollectorDNAGenerator_Address,
+    MollectorPack_Owner
   )
 
   if (!MollectorPack_Address) {
@@ -205,24 +241,30 @@ async function deploy_MollectorUtils() {
   return MollectorUtils;
 }
 
-async function set_SellerForCyBlocPack_COMMON() {
-  var type = (await CYBLOC_PACK.PACK_COMMON()).toString()
-  var seller = await CYBLOC_PACK.Sellers(type)
-
-  if (seller.toLowerCase() != CYBLOC_PACK_SALE_COMMON.address.toLowerCase()) {
-    console.log('CALL: Set seller for CyBlocPack COMMON')
-    var tx = await CYBLOC_PACK.setSeller(type, CYBLOC_PACK_SALE_COMMON.address, await txParams(
+async function set_MollectorCard_setOperator_For_MollectorEscrow_MollectorPack() {
+  
+  if (!(await MollectorCard.operator(MollectorEscrow_Address))) {
+    console.log('CALL: MollectorCard.addOperator', MollectorEscrow_Address)
+    await MollectorCard.addOperator(MollectorEscrow_Address, await txParams(
       RPC,
       OWNER_ADDRESS,
       GAS_PRICE_TX,
       GAS_LIMIT
     ))
     await sleep(BLOCK_TIME);
-    console.log('DONE: Set seller for CyBlocPack COMMON')
-    return tx;
+    console.log('> CALL: MollectorCard.addOperator', MollectorEscrow_Address)
   }
-  else {
-    console.log('SKIP: Set seller for CyBlocPack COMMON')
+
+  if (!(await MollectorCard.operator(MollectorPack_Address))) {
+    console.log('CALL: MollectorCard.addOperator', MollectorPack_Address)
+    await MollectorCard.addOperator(MollectorPack_Address, await txParams(
+      RPC,
+      OWNER_ADDRESS,
+      GAS_PRICE_TX,
+      GAS_LIMIT
+    ))
+    await sleep(BLOCK_TIME);
+    console.log('> CALL: MollectorCard.addOperator', MollectorPack_Address)
   }
 }
 
@@ -230,17 +272,20 @@ async function main() {
   await deploy_MoleculeToken()
   await deploy_MollectorMarket()
   await deploy_MollectorEscrow()
+  await deploy_MollectorDNAGenerator()
   await deploy_MollectorCard()
   await deploy_MollectorPack()
   await deploy_MollectorUtils()
+  await set_MollectorCard_setOperator_For_MollectorEscrow_MollectorPack()
 
   console.log({
     MoleculeToken_Address,
     MollectorMarket_Address,
     MollectorEscrow_Address,
-    MollectorUtils_Address,
+    MollectorDNAGenerator_Address,
     MollectorCard_Address,
     MollectorPack_Address,
+    MollectorUtils_Address,
   })
 }
 

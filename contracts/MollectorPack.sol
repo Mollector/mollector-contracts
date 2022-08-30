@@ -7,10 +7,10 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "./IMollectorCard.sol";
-import "./DNAGenerator.sol";
+import "./Game/IMollectorCard.sol";
+import "./Game/MollectorDNAGenerator.sol";
 
-contract MoleculePack is Ownable, ERC721Enumerable {
+contract MollectorPack is Ownable, ERC721Enumerable {
     using SafeMath for uint256;
 
     string public baseURI = "https://nftmetadata.mollector.com/pack/";
@@ -23,6 +23,7 @@ contract MoleculePack is Ownable, ERC721Enumerable {
     uint[] packSold = [0, 0, 0, 0];
     
     IMollectorCard public NFTContract;
+    MollectorDNAGenerator public DNAGenerator;
     address public signer;
 
     uint256[] public packs;
@@ -30,8 +31,10 @@ contract MoleculePack is Ownable, ERC721Enumerable {
     event OpenedPack(address indexed receiver, uint tokenId);
     event SoldPack(address indexed buyer, uint packType, uint quantity);
     
-    constructor(address _NFTContract) ERC721("Mollector Genesis Pack", "MOLPACK") {
+    constructor(address _NFTContract, address _DNAGenerator, address _signer) ERC721("Mollector Genesis Pack", "MOLPACK") {
         NFTContract = IMollectorCard(_NFTContract);
+        DNAGenerator = MollectorDNAGenerator(_DNAGenerator);
+        signer = _signer;
     }
 
     function _baseURI() internal view override returns (string memory) {
@@ -48,6 +51,10 @@ contract MoleculePack is Ownable, ERC721Enumerable {
 
     function setNFTContract(address _NFTContract) external onlyOwner {
         NFTContract = IMollectorCard(_NFTContract);
+    }
+
+    function setDNAGenerator(address _DNAGenerator) external onlyOwner {
+        DNAGenerator = MollectorDNAGenerator(_DNAGenerator);
     }
 
     function setSigner(address _signer) external onlyOwner {

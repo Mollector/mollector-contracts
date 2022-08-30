@@ -31,8 +31,9 @@ async function txParams(rpc, walletAddress, gasPrice, gasLimit, value) {
 async function contract(rpc, privateKey, gasPrice, gasLimit, contractAddress, contractName, ...constructorParams) {
   var provider = new ethers.providers.JsonRpcProvider(rpc)
   var wallet = new ethers.Wallet(privateKey, provider)
-  var Contract = fs.readFileSync(path.join(__dirname, `../build/contracts/${contractName}.json`))
+  var Contract = fs.readFileSync(path.join(__dirname, `../build/contracts/${contractName}.json`), 'utf8')
   Contract = JSON.parse(Contract)
+
   var factory = new ethers.ContractFactory(
     Contract.abi,
     Contract.bytecode,
