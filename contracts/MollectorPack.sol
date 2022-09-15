@@ -9,22 +9,36 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./Game/IMollectorCard.sol";
 import "./Game/MollectorDNAGenerator.sol";
-
+// export const PlayerPackTypeMapping = {
+//     'wooden': 1,
+//     'bronze': 2,
+//     'silver': 3,
+//     'golden': 4,
+//     'magic': 5,
+//     'legendary': 6,
+//     'mollector': 7,
+//     'mythic': 8,
+//     'ultimate': 9,
+//     'starter': 10,
+//     'fighter': 11,
+//     'veteran': 12,
+//     'master': 13,
+//     'champion': 14,
+//     'merchant': 15,
+//     'vip': 16,
+//     'noble': 17,
+//     'royal': 18
+// }
 contract MollectorPack is Ownable, ERC721Enumerable {
     using SafeMath for uint256;
 
     string public baseURI = "https://nftmetadata.mollector.com/pack/";
     
-    uint256 constant public PACK_COMMON = 1;
-    uint256 constant public PACK_RARE = 2;
-    uint256 constant public PACK_EPIC = 3;
-
-    uint[] packPrice = [0, 1e17, 2e17, 3e17];
-    uint[] packSold = [0, 0, 0, 0];
-    
     IMollectorCard public NFTContract;
     MollectorDNAGenerator public DNAGenerator;
     address public signer;
+    mapping(uint => uint) public price;
+
 
     uint256[] public packs;
 
@@ -35,6 +49,10 @@ contract MollectorPack is Ownable, ERC721Enumerable {
         NFTContract = IMollectorCard(_NFTContract);
         DNAGenerator = MollectorDNAGenerator(_DNAGenerator);
         signer = _signer;
+        price[6] = 1e17;
+        price[7] = 2e18;
+        price[8] = 3e18;
+        price[9] = 4e18;
     }
 
     function _baseURI() internal view override returns (string memory) {
@@ -61,13 +79,11 @@ contract MollectorPack is Ownable, ERC721Enumerable {
         signer = _signer;
     }
 
-    function setPrice(uint[] memory _packPrice) external onlyOwner {
-        packPrice = _packPrice;
+    function setPrice(uint _packType, uint _price) external onlyOwner {
+        price[_packType] = _price;
     }
 
     function mint(address _to, uint256 _packType) internal returns (uint256 tokenId) {
-        require(_packType == PACK_COMMON || _packType == PACK_RARE || _packType == PACK_EPIC, "MoleculePack: wrong type");
-
         tokenId = packs.length;
         packs.push(_packType);
         _safeMint(_to, tokenId);
@@ -143,11 +159,11 @@ contract MollectorPack is Ownable, ERC721Enumerable {
     function buy(uint256 _packType, uint256 _quantity) external payable {
         require(_quantity > 0, "MoleculePackSale: Invalid quantity");
         
-        uint totalPrice = packPrice[_packType] * _quantity;
+        uint totalPrice = price[_packType] * _quantity;
+
+        require(totalPrice > 0, "Wrong pack type");
         
         require(msg.value >= totalPrice, "MoleculePackSale: Invalid msg.value");
-
-        packSold[_packType] += _quantity;
 
         for (uint256 i = 0; i < _quantity; i++) {
             mint(msg.sender, _packType);
