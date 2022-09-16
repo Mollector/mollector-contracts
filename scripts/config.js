@@ -15,7 +15,7 @@ module.exports = {
     MollectorDNAGenerator_Address: '0x7688ab99b94C25781d235370634A9B09003e408B',
     MollectorEscrow_Address: '0xD810E6a54238466dc475593185dB6939c301b972',
     MollectorCard_Address: '0x79B8bAED9C2384188Dd7820D76282709024a38e4',
-    MollectorPack_Address: '0x503ce04CC78B3d180074d39ac0573EA97f99b42c',
+    MollectorPack_Address: '',
     MollectorUtils_Address: '0x68De4Ad688cEa46266212f63f8a037DCb9de99dA',
 
     MollectorEscrow_Owner: '0x40e7c5aA34846968d37e2C6a2EAeec0072967872',
