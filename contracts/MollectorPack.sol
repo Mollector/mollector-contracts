@@ -171,13 +171,8 @@ contract MollectorPack is Ownable, ERC721Enumerable {
 
         require(totalPrice > 0, "Wrong pack type");
         
-        require(msg.value >= totalPrice, "MoleculePackSale: Invalid msg.value");
-
-        for (uint256 i = 0; i < _quantity; i++) {
-            mint(msg.sender, _packType);
-        }
-
         if (payToken == address(0x0)) {
+            require(msg.value >= totalPrice, "MoleculePackSale: Invalid msg.value");
             payable(owner()).transfer(totalPrice);
 
             if (msg.value > totalPrice) {
@@ -189,6 +184,10 @@ contract MollectorPack is Ownable, ERC721Enumerable {
             if (msg.value > 0) {
                 payable(msg.sender).transfer(msg.value);
             }
+        }
+
+        for (uint256 i = 0; i < _quantity; i++) {
+            mint(msg.sender, _packType);
         }
 
         emit SoldPack(msg.sender, _packType, _quantity);
