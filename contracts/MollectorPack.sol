@@ -49,10 +49,10 @@ contract MollectorPack is Ownable, ERC721Enumerable {
         NFTContract = IMollectorCard(_NFTContract);
         DNAGenerator = MollectorDNAGenerator(_DNAGenerator);
         signer = _signer;
-        price[6] = 1e17;
-        price[7] = 2e18;
-        price[8] = 3e18;
-        price[9] = 4e18;
+        price[6] = 1e16;
+        price[7] = 2e16;
+        price[8] = 3e16;
+        price[9] = 4e16;
     }
 
     function _baseURI() internal view override returns (string memory) {
