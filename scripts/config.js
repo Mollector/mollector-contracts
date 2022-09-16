@@ -20,5 +20,6 @@ module.exports = {
 
     MollectorEscrow_Owner: '0x40e7c5aA34846968d37e2C6a2EAeec0072967872',
     MollectorPack_Owner: '0x40e7c5aA34846968d37e2C6a2EAeec0072967872',
-    MollectorMarket_PaymentTokens: ['0x0000000000000000000000000000000000000000', '0x7262fa193e9590b2e075c3c16170f3f2f32f5c74']
+    MollectorMarket_PaymentTokens: ['0x0000000000000000000000000000000000000000', '0x7262fa193e9590b2e075c3c16170f3f2f32f5c74'],
+    MollectorPack_PayToken: '0x7262fa193e9590b2e075c3c16170f3f2f32f5c74'
 }

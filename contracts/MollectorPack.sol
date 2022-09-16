@@ -6,6 +6,8 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./Game/IMollectorCard.sol";
 import "./Game/MollectorDNAGenerator.sol";
@@ -31,6 +33,7 @@ import "./Game/MollectorDNAGenerator.sol";
 // }
 contract MollectorPack is Ownable, ERC721Enumerable {
     using SafeMath for uint256;
+    using SafeERC20 for IERC20;
 
     string public baseURI = "https://nftmetadata.mollector.com/pack/";
     
@@ -38,17 +41,18 @@ contract MollectorPack is Ownable, ERC721Enumerable {
     MollectorDNAGenerator public DNAGenerator;
     address public signer;
     mapping(uint => uint) public price;
-
+    address public payToken;
 
     uint256[] public packs;
 
     event OpenedPack(address indexed receiver, uint tokenId);
     event SoldPack(address indexed buyer, uint packType, uint quantity);
     
-    constructor(address _NFTContract, address _DNAGenerator, address _signer) ERC721("Mollector Genesis Pack", "MOLPACK") {
+    constructor(address _NFTContract, address _DNAGenerator, address _signer, address _payToken) ERC721("Mollector Genesis Pack", "MOLPACK") {
         NFTContract = IMollectorCard(_NFTContract);
         DNAGenerator = MollectorDNAGenerator(_DNAGenerator);
         signer = _signer;
+        payToken = _payToken;
         price[6] = 1e16;
         price[7] = 2e16;
         price[8] = 3e16;
@@ -77,6 +81,10 @@ contract MollectorPack is Ownable, ERC721Enumerable {
 
     function setSigner(address _signer) external onlyOwner {
         signer = _signer;
+    }
+
+    function setPayToken(address _payToken) external onlyOwner {
+        payToken = _payToken;
     }
 
     function setPrice(uint _packType, uint _price) external onlyOwner {
@@ -169,10 +177,18 @@ contract MollectorPack is Ownable, ERC721Enumerable {
             mint(msg.sender, _packType);
         }
 
-        payable(owner()).transfer(totalPrice);
+        if (payToken == address(0x0)) {
+            payable(owner()).transfer(totalPrice);
 
-        if (msg.value > totalPrice) {
-            payable(msg.sender).transfer(msg.value.sub(totalPrice));
+            if (msg.value > totalPrice) {
+                payable(msg.sender).transfer(msg.value.sub(totalPrice));
+            }
+        }
+        else {
+            IERC20(payToken).transferFrom(msg.sender, owner(), totalPrice);
+            if (msg.value > 0) {
+                payable(msg.sender).transfer(msg.value);
+            }
         }
 
         emit SoldPack(msg.sender, _packType, _quantity);

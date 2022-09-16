@@ -20,7 +20,8 @@ var {
 
   MollectorEscrow_Owner,
   MollectorPack_Owner,
-  MollectorMarket_PaymentTokens
+  MollectorMarket_PaymentTokens,
+  MollectorPack_PayToken
 } = require('./config');
 
 var MoleculeToken
@@ -201,7 +202,8 @@ async function deploy_MollectorPack() {
     'MollectorPack',
     MollectorCard_Address,
     MollectorDNAGenerator_Address,
-    MollectorPack_Owner
+    MollectorPack_Owner,
+    MollectorPack_PayToken
   )
 
   if (!MollectorPack_Address) {
