@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -33,40 +32,19 @@ contract OperatorAccess {
     }
 }
 
-contract MollectorCard is ERC721Enumerable, Ownable, OperatorAccess {
-    string public baseURI = "https://nftmetadata.mollector.com/card/";
-    string public contractURIPrefix = "https://nftmetadata.mollector.com/card/";
-    bool public paused = false;
-
-    modifier whenNotPaused() {
-        require(!paused, "Paused");
-        _;
-    }
+contract NeogenesisCard is ERC721Enumerable, Ownable, OperatorAccess {
+    string public baseURI = "https://dev-api.mollector.com/api/nft/";
 
     function _baseURI() internal view override returns (string memory) {
         return baseURI;
     }
 
     function contractURI() external view returns (string memory) {
-        return contractURIPrefix;
-    }
-
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal virtual override {
-        super._beforeTokenTransfer(from, to, tokenId);
-
-        require(!paused, "token transfer while paused");
-    }
-
-    function togglePause() external onlyOwner {
-        paused = !paused;
+        return baseURI;
     }
 
     function setBaseURI(string memory _uri) external onlyOwner {
         baseURI = _uri;
-    }
-
-    function setContractURI(string memory _uri) external onlyOwner {
-        contractURIPrefix = _uri;
     }
 
     function addOperator(address _add) public onlyOwner {
@@ -76,48 +54,42 @@ contract MollectorCard is ERC721Enumerable, Ownable, OperatorAccess {
     function removeOperator(address _add) public onlyOwner {
         _removeOperator(_add);
     }
-
-    mapping(uint => uint) public DNAs; // tokenId => dna
-
-    event Spawned(uint256 indexed _tokenId, address indexed _owner, uint256 _dna);
-    event Burned(uint256 indexed _tokenId);
-    event Updated(uint256 indexed _tokenId, address _newOwner, uint256 _dna);
-    event Linked(uint indexed _tokenId, uint _nftLinkIndex, uint _nftLinkTokenId);
-    event AddLink(uint indexed _id, uint _network, address _add);
-
-    constructor() ERC721("Mollector Card", "MOLCARD") {
+    
+    constructor(address _operator) ERC721("Neogenesis Card", "NEOCARD") {
+        _addOperator(_operator);
     }
 
-    function burn(uint _tokenId) public onlyOperator {
-        _burn(_tokenId);
-        delete DNAs[_tokenId];
-
-        emit Burned(_tokenId);
-    }
-
-    function spawn(address _owner, uint256 _tokenId, uint256 _dna) public onlyOperator returns (uint256) {
+    function update(address _owner, uint _tokenId) public onlyOperator returns (uint256) {
         require(_tokenId > 0, "Missing tokenId");
-        require(DNAs[_tokenId] == 0, "TokenId already in use");
-        DNAs[_tokenId] = _dna;
-        
-        _safeMint(_owner, _tokenId);
-        
-        emit Spawned(_tokenId, _owner, _dna);
+
+        if (_exists(_tokenId)) {
+            if (_owner == address(0x0)) {
+                _burn(_tokenId);
+            }
+            else {
+                address _oldOwner = ownerOf(_tokenId);
+                if (_oldOwner != _owner) {
+                    _safeTransfer(_oldOwner, _owner, _tokenId, "");
+                }
+            }
+        }
+        else {
+            _safeMint(_owner, _tokenId);
+        }
 
         return _tokenId;
     }
 
-    function update(uint _tokenId, address _newOwner, uint256 _dna) public onlyOperator {
-        require(_exists(_tokenId), "Nonexistent token");
-        address _owner = ownerOf(_tokenId);
-        if (_newOwner != address(0x0) && _owner != _newOwner) {
-            _safeTransfer(_owner, _newOwner, _tokenId, "");
+    function batch(address[] memory _owners, uint[] memory _tokenIds) public onlyOperator {
+        for (uint i = 0; i < _owners.length; i++) {
+            update(_owners[i], _tokenIds[i]);
         }
+    }
 
-        if (_dna != 0) {
-            DNAs[_tokenId] = _dna;
+    function ownerOfIds(uint[] memory _tokenIds) public view returns (address[] memory owners) {
+        owners = new address[](_tokenIds.length);
+        for (uint i = 0; i < _tokenIds.length; i++) {
+            owners[i] = ownerOf(_tokenIds[i]);
         }
-
-        emit Updated(_tokenId, _newOwner, _dna);
     }
 }
