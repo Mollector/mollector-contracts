@@ -33,7 +33,7 @@ contract OperatorAccess {
 }
 
 contract NeogenesisCard is ERC721Enumerable, Ownable, OperatorAccess {
-    string public baseURI = "https://dev-api.mollector.com/api/nft/";
+    string public baseURI = "https://api-dev.mollector.com/api/nft/";
 
     function _baseURI() internal view override returns (string memory) {
         return baseURI;
@@ -89,7 +89,12 @@ contract NeogenesisCard is ERC721Enumerable, Ownable, OperatorAccess {
     function ownerOfIds(uint[] memory _tokenIds) public view returns (address[] memory owners) {
         owners = new address[](_tokenIds.length);
         for (uint i = 0; i < _tokenIds.length; i++) {
-            owners[i] = ownerOf(_tokenIds[i]);
+            if (_exists(_tokenIds[i])) {
+                owners[i] = ownerOf(_tokenIds[i]);
+            }
+            else {
+                owners[i] = owner();
+            }
         }
     }
 }
