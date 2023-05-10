@@ -55,7 +55,7 @@ contract NeogenesisCard is ERC721Enumerable, Ownable, OperatorAccess {
         _removeOperator(_add);
     }
     
-    constructor(address _operator) ERC721("Neogenesis Card", "NEOCARD") {
+    constructor(address _operator) ERC721("TEST Mollector Card", "TESTMOLCARD") {
         _addOperator(_operator);
     }
 
